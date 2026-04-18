@@ -34,16 +34,19 @@ app.get('/favicon.ico', (req, res) => {
 
 // Catch-all handler for frontend routes (SPA support)
 app.get('*', (req, res) => {
-  const indexPath = fs.existsSync(path.join(__dirname, '..', 'client', 'dist', 'index.html'))
-    ? path.join(__dirname, '..', 'client', 'dist', 'index.html')
-    : path.join(__dirname, 'client', 'dist', 'index.html');
+  const indexPath = fs.existsSync(path.join(__dirname, '../../client', 'dist', 'index.html'))
+    ? path.join(__dirname, '../../client', 'dist', 'index.html')
+    : fs.existsSync(path.join(__dirname, 'client', 'dist', 'index.html'))
+    ? path.join(__dirname, 'client', 'dist', 'index.html')
+    : path.join('/opt/render/project/client', 'dist', 'index.html');
   
   res.sendFile(indexPath);
 });
 
 // Serve static frontend first - check multiple possible paths
-const frontendPath = path.join(__dirname, '..', 'client', 'dist');
+const frontendPath = path.join(__dirname, '../../client', 'dist');
 const alternativePath = path.join(__dirname, 'client', 'dist');
+const rootPath = path.join('/opt/render/project/client', 'dist');
 
 if (fs.existsSync(frontendPath)) {
   app.use(express.static(frontendPath));
@@ -51,8 +54,11 @@ if (fs.existsSync(frontendPath)) {
 } else if (fs.existsSync(alternativePath)) {
   app.use(express.static(alternativePath));
   console.log('Serving frontend from:', alternativePath);
+} else if (fs.existsSync(rootPath)) {
+  app.use(express.static(rootPath));
+  console.log('Serving frontend from:', rootPath);
 } else {
-  console.log('Frontend build not found, expected paths:', frontendPath, alternativePath);
+  console.log('Frontend build not found, expected paths:', frontendPath, alternativePath, rootPath);
 }
 
 // API Routes
