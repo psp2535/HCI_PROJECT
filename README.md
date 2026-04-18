@@ -4,19 +4,24 @@ A comprehensive web-based semester registration and management system for ABV-In
 
 ## 📋 Table of Contents
 
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [System Architecture](#system-architecture)
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Running the Application](#running-the-application)
-- [User Roles](#user-roles)
-- [API Documentation](#api-documentation)
-- [Project Structure](#project-structure)
-- [Screenshots](#screenshots)
-- [Contributing](#contributing)
-- [License](#license)
+- [Features](#-features)
+- [Tech Stack](#️-tech-stack)
+- [System Architecture](#️-system-architecture)
+- [Prerequisites](#-prerequisites)
+- [Installation](#-installation)
+- [Configuration](#️-configuration)
+- [Running the Application](#-running-the-application)
+- [User Roles](#-user-roles)
+- [API Documentation](#-api-documentation)
+- [Project Structure](#-project-structure)
+- [Screenshots](#-screenshots)
+- [Contributing](#-contributing)
+- [Bug Reports](#-bug-reports)
+- [License](#-license)
+- [Authors](#-authors)
+- [Acknowledgments](#-acknowledgments)
+- [Support](#-support)
+- [Future Enhancements](#-future-enhancements)
 
 ## ✨ Features
 
