@@ -10,4 +10,5 @@ services:
     envVars:
       - key: VITE_API_URL
         value: https://abviiitm-backend.onrender.com
+        sync: false
     autoDeploy: true
