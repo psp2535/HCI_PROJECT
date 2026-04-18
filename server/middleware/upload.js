@@ -27,6 +27,9 @@ const upload = multer({
 // Middleware for single PDF upload
 export const uploadPDF = upload.single('receiptFile');
 
+// Middleware for subject PDF upload
+export const uploadSubjectPDF = upload.single('subjectPDF');
+
 // Error handling middleware for multer
 export const handleUploadError = (err, req, res, next) => {
   if (err instanceof multer.MulterError) {

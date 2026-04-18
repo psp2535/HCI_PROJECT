@@ -8,7 +8,7 @@ import Receipt from '../models/Receipt.js';
 import Subject from '../models/Subject.js';
 import { promoteStudentsToNextSemester, getPromotionStats } from '../controllers/promotionController.js';
 import { processSubjectPDF } from '../controllers/subjectUploadController.js';
-import { uploadPDF, handleUploadError } from '../middleware/upload.js';
+import { uploadSubjectPDF, handleUploadError } from '../middleware/upload.js';
 
 const router = express.Router();
 
@@ -222,7 +222,7 @@ router.get('/promotion-stats', protect, authorize('admin'), async (req, res) => 
 // ══════════════════════════════════════════════════════════════
 
 // ── Upload subjects PDF ───────────────────────────────────────
-router.post('/upload-subjects-pdf', protect, authorize('admin'), uploadPDF, handleUploadError, async (req, res) => {
+router.post('/upload-subjects-pdf', protect, authorize('admin'), uploadSubjectPDF, handleUploadError, async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ 
