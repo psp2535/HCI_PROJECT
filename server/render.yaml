@@ -9,6 +9,7 @@ services:
     startCommand: npm start
     healthCheckPath: /api/health
     autoDeploy: true
+    rootDirectory: server
     envVars:
       - key: NODE_ENV
         value: production

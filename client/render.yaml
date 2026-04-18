@@ -6,6 +6,7 @@ services:
     plan: free
     buildCommand: npm run build
     staticPublishPath: dist
+    rootDirectory: client
     envVars:
       - key: VITE_API_URL
         value: https://abviiitm-backend.onrender.com
