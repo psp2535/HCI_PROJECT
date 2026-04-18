@@ -1,0 +1,12 @@
+services:
+  # Frontend React App
+  - type: web
+    name: abviiitm-frontend
+    runtime: static
+    plan: free
+    buildCommand: npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://abviiitm-backend.onrender.com
+    autoDeploy: true
