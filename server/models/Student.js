@@ -10,7 +10,15 @@ const studentSchema = new mongoose.Schema({
   role: { type: String, default: 'student' },
   program: { type: String, enum: ['BCS', 'IMT', 'BEE', 'IMG', 'BMS', 'MBA', 'MTECH'], default: 'BCS' },
   batch: String,
+  batchYear: { type: Number }, // e.g., 2025
   semester: { type: Number, default: 1 },
+  currentSemester: { type: Number, default: 1 }, // For promotion tracking
+  overallStatus: { 
+    type: String, 
+    enum: ['active', 'final_approved', 'pending', 'inactive'], 
+    default: 'active' 
+  },
+  lastPromotedAt: { type: Date }, // Prevent double promotion
   bloodGroup: String,
   income: Number,
   category: { type: String, enum: ['General', 'OBC', 'SC', 'ST', 'EWS'], default: 'General' },

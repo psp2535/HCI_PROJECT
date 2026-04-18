@@ -2,6 +2,7 @@ import express from 'express';
 import { protect, authorize } from '../middleware/auth.js';
 import Subject from '../models/Subject.js';
 import Registration from '../models/Registration.js';
+import { getSubjectsForStudent, selectSubjectsForStudent, getSubjectSelectionSummary } from '../controllers/studentSubjectController.js';
 
 const router = express.Router();
 
@@ -33,64 +34,82 @@ const SUBJECTS_DATA = [
   { code: 'CS305', name: 'Cloud Computing', ltp: '3-0-0', credits: 3, type: 'elective', programs: ['BCS', 'IMT'], semester: 6, batch: 2023 },
 ];
 
-// Get all subjects (filter by program & semester)
+// ══════════════════════════════════════════════════════════════
+// FEATURE 3: DYNAMIC SUBJECT FETCH FOR STUDENTS
+// ══════════════════════════════════════════════════════════════
+
+// Get subjects dynamically based on student's program and current semester
 router.get('/', protect, async (req, res) => {
   try {
+    // If student is requesting, use dynamic fetch
+    if (req.user.role === 'student') {
+      const result = await getSubjectsForStudent(req.user.id);
+      
+      if (!result.success) {
+        return res.status(404).json({
+          success: false,
+          message: result.message,
+          subjects: []
+        });
+      }
+      
+      return res.json(result.subjects);
+    }
+    
+    // For admin/faculty, allow query-based filtering
     const { program, semester, batch } = req.query;
     const filter = {};
-    if (program) filter.programs = program;
+    if (program) filter.program = program;
     if (semester) filter.semester = parseInt(semester);
     if (batch) filter.batch = parseInt(batch);
     
     const subjects = await Subject.find(filter);
     res.json(subjects);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ 
+      success: false,
+      message: err.message 
+    });
   }
 });
 
-// Select subjects for registration
+// Get subject selection summary for student
+router.get('/selection-summary', protect, authorize('student'), async (req, res) => {
+  try {
+    const summary = await getSubjectSelectionSummary(req.user.id);
+    res.json(summary);
+  } catch (err) {
+    res.status(500).json({ 
+      success: false,
+      message: err.message 
+    });
+  }
+});
+
+// Select subjects for registration with validation
 router.post('/select', protect, authorize('student'), async (req, res) => {
   try {
     const { subjectIds, backlogSubjectIds } = req.body;
     
-    // Validate credits
-    const selected = await Subject.find({ _id: { $in: subjectIds } });
-    const backlog = await Subject.find({ _id: { $in: backlogSubjectIds || [] } });
-    
-    const totalCredits = [...selected, ...backlog].reduce((sum, s) => sum + s.credits, 0);
-    
-    if (totalCredits > 32) {
-      return res.status(400).json({ message: `Total credits (${totalCredits}) exceed the maximum allowed limit of 32` });
+    if (!subjectIds || !Array.isArray(subjectIds) || subjectIds.length === 0) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Please select at least one subject' 
+      });
     }
     
-    const reg = await Registration.findOneAndUpdate(
-      { studentId: req.user.id },
-      {
-        selectedSubjects: subjectIds,
-        backlogSubjects: backlogSubjectIds || [],
-        totalCredits,
-        subjectsSelected: true
-      },
-      { new: true }
-    ).populate('selectedSubjects backlogSubjects');
+    const result = await selectSubjectsForStudent(
+      req.user.id, 
+      subjectIds, 
+      backlogSubjectIds || []
+    );
     
-    if (!reg) return res.status(404).json({ message: 'Registration not found. Please initialize registration first.' });
-    
-    res.json(reg);
+    res.json(result);
   } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// Seed subjects (admin only)
-router.post('/seed', protect, authorize('admin'), async (req, res) => {
-  try {
-    await Subject.deleteMany({});
-    await Subject.insertMany(SUBJECTS_DATA);
-    res.json({ message: `Seeded ${SUBJECTS_DATA.length} subjects successfully` });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(400).json({ 
+      success: false,
+      message: err.message 
+    });
   }
 });
 

@@ -6,6 +6,9 @@ import Registration from '../models/Registration.js';
 import Payment from '../models/Payment.js';
 import Receipt from '../models/Receipt.js';
 import Subject from '../models/Subject.js';
+import { promoteStudentsToNextSemester, getPromotionStats } from '../controllers/promotionController.js';
+import { processSubjectPDF } from '../controllers/subjectUploadController.js';
+import { uploadPDF, handleUploadError } from '../middleware/upload.js';
 
 const router = express.Router();
 
@@ -111,9 +114,9 @@ router.post('/seed-demo', async (req, res) => {
   try {
     // Create demo students
     const demoStudents = [
-      { rollNo: '2023IMT-001', name: 'Rahul Sharma', email: 'rahul@iiitm.ac.in', passwordHash: 'Student@123', program: 'IMT', batch: '2023', semester: 6, abcId: 'ABC123456789', mobile: '9876543210' },
-      { rollNo: '2024BCS-042', name: 'Priya Singh', email: 'priya@iiitm.ac.in', passwordHash: 'Student@123', program: 'BCS', batch: '2024', semester: 4, abcId: 'ABC987654321', mobile: '9876543211' },
-      { rollNo: '2025IMT-015', name: 'Arjun Verma', email: 'arjun@iiitm.ac.in', passwordHash: 'Student@123', program: 'IMT', batch: '2025', semester: 2, mobile: '9876543212' },
+      { rollNo: '2023IMT-001', name: 'Rahul Sharma', email: 'rahul@iiitm.ac.in', passwordHash: 'Student@123', program: 'IMT', batch: '2023', batchYear: 2023, semester: 6, currentSemester: 6, overallStatus: 'active', abcId: 'ABC123456789', mobile: '9876543210' },
+      { rollNo: '2024BCS-042', name: 'Priya Singh', email: 'priya@iiitm.ac.in', passwordHash: 'Student@123', program: 'BCS', batch: '2024', batchYear: 2024, semester: 4, currentSemester: 4, overallStatus: 'active', abcId: 'ABC987654321', mobile: '9876543211' },
+      { rollNo: '2025IMT-015', name: 'Arjun Verma', email: 'arjun@iiitm.ac.in', passwordHash: 'Student@123', program: 'IMT', batch: '2025', batchYear: 2025, semester: 2, currentSemester: 2, overallStatus: 'active', mobile: '9876543212' },
     ];
 
     for (const s of demoStudents) {
@@ -133,27 +136,27 @@ router.post('/seed-demo', async (req, res) => {
       if (!exists) await Staff.create(s);
     }
 
-    // Seed subjects
+    // Seed subjects with updated schema
     const SUBJECTS_DATA = [
-      { code: 'EE103', name: 'Digital Electronics', ltp: '3-0-2', credits: 4, type: 'core', programs: ['BCS', 'IMT', 'BEE', 'IMG', 'BMS'], semester: 2, batch: 2025 },
-      { code: 'ES103', name: 'Probability and Statistics', ltp: '3-1-0', credits: 4, type: 'core', programs: ['BCS', 'IMT', 'BEE', 'IMG', 'BMS'], semester: 2, batch: 2025 },
-      { code: 'CS102', name: 'Data Structures', ltp: '3-1-0', credits: 4, type: 'core', programs: ['BCS', 'IMT', 'BEE', 'IMG', 'BMS'], semester: 2, batch: 2025 },
-      { code: 'EE104', name: 'Hardware Workshop', ltp: '0-0-6', credits: 3, type: 'core', programs: ['BCS', 'IMT', 'BEE', 'IMG', 'BMS'], semester: 2, batch: 2025 },
-      { code: 'CS103', name: 'Object Oriented Programming', ltp: '3-1-0', credits: 4, type: 'core', programs: ['BCS', 'IMT', 'BEE', 'IMG', 'BMS'], semester: 2, batch: 2025 },
-      { code: 'HS103', name: 'Ecology and Environment Sciences', ltp: '2-0-0', credits: 2, type: 'core', programs: ['BCS', 'IMT', 'BEE', 'IMG', 'BMS'], semester: 2, batch: 2025 },
-      { code: 'CS104', name: 'Mobile Application Technologies', ltp: '2-0-0', credits: 2, type: 'core', programs: ['BCS', 'IMT'], semester: 2, batch: 2025 },
-      { code: 'HS202', name: 'Entrepreneurship', ltp: '2-0-0', credits: 2, type: 'core', programs: ['BCS', 'IMT'], semester: 4, batch: 2024 },
-      { code: 'CS206', name: 'Theory of Computation', ltp: '3-0-0', credits: 3, type: 'core', programs: ['BCS', 'IMT'], semester: 4, batch: 2024 },
-      { code: 'CS207', name: 'Operating Systems', ltp: '3-1-0', credits: 4, type: 'core', programs: ['BCS', 'IMT'], semester: 4, batch: 2024 },
-      { code: 'CS208', name: 'Computer Networks', ltp: '3-1-0', credits: 4, type: 'core', programs: ['BCS', 'IMT'], semester: 4, batch: 2024 },
-      { code: 'CS209', name: 'Mathematical Foundations', ltp: '3-1-0', credits: 4, type: 'core', programs: ['BCS'], semester: 4, batch: 2024 },
-      { code: 'CS210', name: 'Software Engineering', ltp: '3-1-0', credits: 4, type: 'core', programs: ['BCS'], semester: 4, batch: 2024 },
-      { code: 'CS301', name: 'Deep Learning', ltp: '3-0-2', credits: 4, type: 'elective', programs: ['BCS', 'IMT'], semester: 6, batch: 2023 },
-      { code: 'CS302', name: 'Machine Learning', ltp: '3-0-2', credits: 4, type: 'elective', programs: ['BCS', 'IMT'], semester: 6, batch: 2023 },
-      { code: 'CS303', name: 'Cryptography and Network Security', ltp: '3-0-0', credits: 3, type: 'elective', programs: ['BCS', 'IMT'], semester: 6, batch: 2023 },
-      { code: 'CS304', name: 'Internet of Things', ltp: '3-0-2', credits: 4, type: 'elective', programs: ['BCS', 'IMT'], semester: 6, batch: 2023 },
-      { code: 'CS305', name: 'Cloud Computing', ltp: '3-0-0', credits: 3, type: 'elective', programs: ['BCS', 'IMT'], semester: 6, batch: 2023 },
-      { code: 'CS306', name: 'Generative AI', ltp: '3-0-2', credits: 4, type: 'elective', programs: ['BCS', 'IMT'], semester: 6, batch: 2023 },
+      { subjectCode: 'EE103', subjectName: 'Digital Electronics', ltp: '3-0-2', credits: 4, type: 'core', program: 'IMT', semester: 2, batch: 2025, academicYear: '2025-26' },
+      { subjectCode: 'ES103', subjectName: 'Probability and Statistics', ltp: '3-1-0', credits: 4, type: 'core', program: 'IMT', semester: 2, batch: 2025, academicYear: '2025-26' },
+      { subjectCode: 'CS102', subjectName: 'Data Structures', ltp: '3-1-0', credits: 4, type: 'core', program: 'IMT', semester: 2, batch: 2025, academicYear: '2025-26' },
+      { subjectCode: 'EE104', subjectName: 'Hardware Workshop', ltp: '0-0-6', credits: 3, type: 'core', program: 'IMT', semester: 2, batch: 2025, academicYear: '2025-26' },
+      { subjectCode: 'CS103', subjectName: 'Object Oriented Programming', ltp: '3-1-0', credits: 4, type: 'core', program: 'IMT', semester: 2, batch: 2025, academicYear: '2025-26' },
+      { subjectCode: 'HS103', subjectName: 'Ecology and Environment Sciences', ltp: '2-0-0', credits: 2, type: 'core', program: 'IMT', semester: 2, batch: 2025, academicYear: '2025-26' },
+      { subjectCode: 'CS104', subjectName: 'Mobile Application Technologies', ltp: '2-0-0', credits: 2, type: 'core', program: 'IMT', semester: 2, batch: 2025, academicYear: '2025-26' },
+      { subjectCode: 'HS202', subjectName: 'Entrepreneurship', ltp: '2-0-0', credits: 2, type: 'core', program: 'BCS', semester: 4, batch: 2024, academicYear: '2025-26' },
+      { subjectCode: 'CS206', subjectName: 'Theory of Computation', ltp: '3-0-0', credits: 3, type: 'core', program: 'BCS', semester: 4, batch: 2024, academicYear: '2025-26' },
+      { subjectCode: 'CS207', subjectName: 'Operating Systems', ltp: '3-1-0', credits: 4, type: 'core', program: 'BCS', semester: 4, batch: 2024, academicYear: '2025-26' },
+      { subjectCode: 'CS208', subjectName: 'Computer Networks', ltp: '3-1-0', credits: 4, type: 'core', program: 'BCS', semester: 4, batch: 2024, academicYear: '2025-26' },
+      { subjectCode: 'CS209', subjectName: 'Mathematical Foundations', ltp: '3-1-0', credits: 4, type: 'core', program: 'BCS', semester: 4, batch: 2024, academicYear: '2025-26' },
+      { subjectCode: 'CS210', subjectName: 'Software Engineering', ltp: '3-1-0', credits: 4, type: 'core', program: 'BCS', semester: 4, batch: 2024, academicYear: '2025-26' },
+      { subjectCode: 'CS301', subjectName: 'Deep Learning', ltp: '3-0-2', credits: 4, type: 'elective', program: 'IMT', semester: 6, batch: 2023, academicYear: '2025-26' },
+      { subjectCode: 'CS302', subjectName: 'Machine Learning', ltp: '3-0-2', credits: 4, type: 'elective', program: 'IMT', semester: 6, batch: 2023, academicYear: '2025-26' },
+      { subjectCode: 'CS303', subjectName: 'Cryptography and Network Security', ltp: '3-0-0', credits: 3, type: 'elective', program: 'IMT', semester: 6, batch: 2023, academicYear: '2025-26' },
+      { subjectCode: 'CS304', subjectName: 'Internet of Things', ltp: '3-0-2', credits: 4, type: 'elective', program: 'IMT', semester: 6, batch: 2023, academicYear: '2025-26' },
+      { subjectCode: 'CS305', subjectName: 'Cloud Computing', ltp: '3-0-0', credits: 3, type: 'elective', program: 'IMT', semester: 6, batch: 2023, academicYear: '2025-26' },
+      { subjectCode: 'CS306', subjectName: 'Generative AI', ltp: '3-0-2', credits: 4, type: 'elective', program: 'IMT', semester: 6, batch: 2023, academicYear: '2025-26' },
     ];
 
     const subjectCount = await Subject.countDocuments();
@@ -173,6 +176,128 @@ router.post('/seed-demo', async (req, res) => {
     }});
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+});
+
+// ══════════════════════════════════════════════════════════════
+// FEATURE 1: SEMESTER PROMOTION SYSTEM
+// ══════════════════════════════════════════════════════════════
+
+// ── Promote students to next semester ─────────────────────────
+router.post('/promote-semester', protect, authorize('admin'), async (req, res) => {
+  try {
+    const { program, batchYear, promoteAll } = req.body;
+
+    // Build filters
+    const filters = {};
+    if (!promoteAll) {
+      if (program) filters.program = program;
+      if (batchYear) filters.batchYear = parseInt(batchYear);
+    }
+
+    // Perform promotion
+    const result = await promoteStudentsToNextSemester(filters);
+
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ 
+      success: false,
+      message: err.message 
+    });
+  }
+});
+
+// ── Get promotion statistics ──────────────────────────────────
+router.get('/promotion-stats', protect, authorize('admin'), async (req, res) => {
+  try {
+    const stats = await getPromotionStats();
+    res.json(stats);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// ══════════════════════════════════════════════════════════════
+// FEATURE 2: PDF UPLOAD → SUBJECT AUTO UPDATE
+// ══════════════════════════════════════════════════════════════
+
+// ── Upload subjects PDF ───────────────────────────────────────
+router.post('/upload-subjects-pdf', protect, authorize('admin'), uploadPDF, handleUploadError, async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'No PDF file uploaded. Please upload a PDF file.' 
+      });
+    }
+
+    // Process the PDF buffer
+    const result = await processSubjectPDF(req.file.buffer);
+
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ 
+      success: false,
+      message: err.message 
+    });
+  }
+});
+
+// ── Get subjects by program and semester ──────────────────────
+router.get('/subjects', protect, authorize('admin'), async (req, res) => {
+  try {
+    const { program, semester, academicYear } = req.query;
+    
+    const filter = {};
+    if (program) filter.program = program;
+    if (semester) filter.semester = parseInt(semester);
+    if (academicYear) filter.academicYear = academicYear;
+
+    const subjects = await Subject.find(filter).sort({ type: 1, subjectCode: 1 });
+    
+    res.json({
+      success: true,
+      count: subjects.length,
+      subjects
+    });
+  } catch (err) {
+    res.status(500).json({ 
+      success: false,
+      message: err.message 
+    });
+  }
+});
+
+// ── Delete subjects by program and semester ───────────────────
+router.delete('/subjects', protect, authorize('admin'), async (req, res) => {
+  try {
+    const { program, semester, academicYear } = req.query;
+    
+    if (!program || !semester) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Program and semester are required' 
+      });
+    }
+
+    const filter = { 
+      program, 
+      semester: parseInt(semester) 
+    };
+    if (academicYear) filter.academicYear = academicYear;
+
+    const result = await Subject.deleteMany(filter);
+    
+    res.json({
+      success: true,
+      message: `Deleted ${result.deletedCount} subjects`,
+      deletedCount: result.deletedCount
+    });
+  } catch (err) {
+    res.status(500).json({ 
+      success: false,
+      message: err.message 
+    });
   }
 });
 

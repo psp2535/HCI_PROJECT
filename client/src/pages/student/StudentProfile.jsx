@@ -61,38 +61,38 @@ export default function StudentProfile() {
   if (loading) return <div className="flex justify-center items-center h-64"><div className="spinner" /></div>;
 
   return (
-    <div className="max-w-4xl mx-auto animate-fade-in-up">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(37,99,235,0.2)' }}>
-          <User size={20} className="text-blue-400" />
+    <div className="max-w-5xl mx-auto animate-fade-in-up">
+      <div className="flex items-center gap-4 mb-8">
+        <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #2563eb, #7c3aed)' }}>
+          <User size={28} className="text-white" />
         </div>
         <div>
-          <h2 className="text-white font-bold text-xl">Personal Information</h2>
-          <p className="text-slate-400 text-sm">Fill all details as per your official documents</p>
+          <h2 className="text-white font-bold text-2xl">Personal Information</h2>
+          <p className="text-slate-400 text-base mt-1">Fill all details as per your official documents</p>
         </div>
       </div>
 
       {/* Read-only info */}
-      <div className="glass-card p-5 mb-6">
-        <h3 className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-3">Academic Profile</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="glass-card p-6 mb-8">
+        <h3 className="text-slate-300 text-sm font-bold uppercase tracking-wider mb-4">Academic Profile</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
           {[['Roll Number', user?.rollNo], ['Program', user?.program], ['Semester', user?.semester], ['Email', user?.email]].map(([label, value]) => (
             <div key={label}>
-              <p className="text-slate-500 text-xs mb-1">{label}</p>
-              <p className="text-white font-medium text-sm">{value}</p>
+              <p className="text-slate-500 text-sm mb-2">{label}</p>
+              <p className="text-white font-semibold text-base">{value}</p>
             </div>
           ))}
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-8">
         {FIELDS.map(({ section, fields }) => (
-          <div key={section} className="glass-card p-6">
-            <h3 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider flex items-center gap-2">
-              <span className="w-1 h-4 rounded-full bg-blue-500 block" />
+          <div key={section} className="glass-card p-8">
+            <h3 className="text-white font-bold text-lg mb-6 flex items-center gap-3">
+              <span className="w-1.5 h-6 rounded-full bg-gradient-to-b from-blue-500 to-purple-500 block" />
               {section}
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {fields.map(({ key, label, type, options, required }) => (
                 <div key={key} className={type === 'textarea' ? 'md:col-span-2' : ''}>
                   <label className="form-label">{label}{required && <span className="text-red-400 ml-1">*</span>}</label>
@@ -112,8 +112,8 @@ export default function StudentProfile() {
           </div>
         ))}
 
-        <button type="submit" disabled={saving} className="btn-primary flex items-center gap-2 px-8 py-3">
-          {saving ? <Loader size={18} className="animate-spin" /> : <Save size={18} />}
+        <button type="submit" disabled={saving} className="btn-primary flex items-center gap-3 px-10 py-4 text-base">
+          {saving ? <Loader size={20} className="animate-spin" /> : <Save size={20} />}
           {saving ? 'Saving...' : 'Save Personal Information'}
         </button>
       </form>

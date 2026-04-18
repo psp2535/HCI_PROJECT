@@ -1,0 +1,44 @@
+Sample PDF Format for Subject Upload
+=====================================
+
+This is an example of the expected PDF format for uploading subjects.
+
+Program: IMT
+Semester: 3
+Academic Year: 2025-26
+
+Core Subjects:
+CS301 Data Structures and Algorithms (4 credits)
+CS302 Database Management Systems (4 credits)
+CS303 Computer Organization (3 credits)
+CS304 Operating Systems Lab (2 credits)
+
+Electives:
+CS401 Artificial Intelligence Basics (3 credits)
+CS402 Web Development (3 credits)
+CS403 Mobile Computing (3 credits)
+
+---
+
+Alternative Format (Table):
+
+Program: BCS
+Semester: 4
+
+Core Subjects:
+CS206 | Theory of Computation | 3-0-0 | 3
+CS207 | Operating Systems | 3-1-0 | 4
+CS208 | Computer Networks | 3-1-0 | 4
+
+Electives:
+CS301 | Machine Learning | 3-0-2 | 4
+CS302 | Cloud Computing | 3-0-0 | 3
+
+---
+
+Notes:
+- Program must be one of: BCS, IMT, BEE, IMG, BMS, MBA, MTECH
+- Semester must be a number (1-8)
+- Subject code format: 2-4 letters followed by 3 digits (e.g., CS301, IT209)
+- Credits must be a positive number
+- Type is determined by section header (Core Subjects / Electives)
