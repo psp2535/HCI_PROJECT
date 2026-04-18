@@ -27,16 +27,20 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Uploads directory
-const uploadsDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-app.use('/uploads', express.static(uploadsDir));
+// Serve favicon and static files
+app.get('/favicon.ico', (req, res) => {
+  res.status(204).end();
+});
 
-const receiptsDir = path.join(__dirname, 'receipts');
-if (!fs.existsSync(receiptsDir)) fs.mkdirSync(receiptsDir, { recursive: true });
-app.use('/receipts', express.static(receiptsDir));
+// Catch-all handler for frontend routes (SPA support)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'client', 'dist', 'index.html'));
+});
 
-// Routes
+// Serve static frontend first
+app.use(express.static(path.join(__dirname, '..', 'client', 'dist')));
+
+// API Routes
 import authRoutes from './routes/auth.js';
 import studentRoutes from './routes/student.js';
 import subjectRoutes from './routes/subject.js';
@@ -54,6 +58,15 @@ app.use('/api/receipt', receiptRoutes);
 app.use('/api/verification', verificationRoutes);
 app.use('/api/faculty', facultyRoutes);
 app.use('/api/admin', adminRoutes);
+
+// Uploads directory
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+app.use('/uploads', express.static(uploadsDir));
+
+const receiptsDir = path.join(__dirname, 'receipts');
+if (!fs.existsSync(receiptsDir)) fs.mkdirSync(receiptsDir, { recursive: true });
+app.use('/receipts', express.static(receiptsDir));
 
 app.get('/api/health', (req, res) => res.json({ status: 'OK', message: 'ABV-IIITM Registration API Running' }));
 
