@@ -13,5 +13,21 @@ export default defineConfig({
       '/uploads': { target: 'http://localhost:5000', changeOrigin: true },
       '/receipts': { target: 'http://localhost:5000', changeOrigin: true },
     }
+  },
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          router: ['react-router-dom']
+        }
+      }
+    }
+  },
+  define: {
+    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'production')
   }
 })
