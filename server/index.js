@@ -40,17 +40,6 @@ app.get('/favicon.ico', (req, res) => {
   res.status(204).end();
 });
 
-// Catch-all handler for frontend routes (SPA support)
-app.get('*', (req, res) => {
-  const indexPath = fs.existsSync(path.join(__dirname, '../../client', 'dist', 'index.html'))
-    ? path.join(__dirname, '../../client', 'dist', 'index.html')
-    : fs.existsSync(path.join(__dirname, 'client', 'dist', 'index.html'))
-    ? path.join(__dirname, 'client', 'dist', 'index.html')
-    : path.join('/opt/render/project/client', 'dist', 'index.html');
-  
-  res.sendFile(indexPath);
-});
-
 // Serve static frontend first - check multiple possible paths
 const frontendPath = path.join(__dirname, '../../client', 'dist');
 const alternativePath = path.join(__dirname, 'client', 'dist');
@@ -98,6 +87,17 @@ if (!fs.existsSync(receiptsDir)) fs.mkdirSync(receiptsDir, { recursive: true });
 app.use('/receipts', express.static(receiptsDir));
 
 app.get('/api/health', (req, res) => res.json({ status: 'OK', message: 'ABV-IIITM Registration API Running' }));
+
+// Catch-all handler for frontend routes (SPA support) - MUST be last
+app.get('*', (req, res) => {
+  const indexPath = fs.existsSync(path.join(__dirname, '../../client', 'dist', 'index.html'))
+    ? path.join(__dirname, '../../client', 'dist', 'index.html')
+    : fs.existsSync(path.join(__dirname, 'client', 'dist', 'index.html'))
+    ? path.join(__dirname, 'client', 'dist', 'index.html')
+    : path.join('/opt/render/project/client', 'dist', 'index.html');
+  
+  res.sendFile(indexPath);
+});
 
 // MongoDB
 mongoose.connect(process.env.MONGO_URI?.replace('localhost', '127.0.0.1'))
