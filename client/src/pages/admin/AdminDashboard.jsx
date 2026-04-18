@@ -56,7 +56,7 @@ export default function AdminDashboard() {
     setUploadingPDF(true);
     try {
       const formData = new FormData();
-      formData.append('pdf', selectedFile);
+      formData.append('subjectPDF', selectedFile);
       
       const response = await api.post('/admin/upload-subjects-pdf', formData, {
         headers: {
