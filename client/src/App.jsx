@@ -1,11 +1,11 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import './index.css';
 
 // Page imports
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import StaffRegisterPage from './pages/StaffRegisterPage';
 
 // Layouts
 import StudentLayout from './components/StudentLayout';
@@ -19,6 +19,7 @@ import StudentDashboard from './pages/student/StudentDashboard';
 import StudentProfile from './pages/student/StudentProfile';
 import SubjectSelection from './pages/student/SubjectSelection';
 import FeePayment from './pages/student/FeePayment';
+import FeeReceipts from './pages/student/FeeReceipts';
 import Receipts from './pages/student/Receipts';
 
 // Verification Pages
@@ -48,6 +49,7 @@ function AppRoutes() {
         {/* Public */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/staff-register" element={<StaffRegisterPage />} />
 
         {/* Student */}
         <Route path="/student" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><div /></StudentLayout></ProtectedRoute>} />
@@ -55,6 +57,7 @@ function AppRoutes() {
         <Route path="/student/profile" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><StudentProfile /></StudentLayout></ProtectedRoute>} />
         <Route path="/student/subjects" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><SubjectSelection /></StudentLayout></ProtectedRoute>} />
         <Route path="/student/payment" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><FeePayment /></StudentLayout></ProtectedRoute>} />
+        <Route path="/student/fee-receipts" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><FeeReceipts /></StudentLayout></ProtectedRoute>} />
         <Route path="/student/receipts" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><Receipts /></StudentLayout></ProtectedRoute>} />
 
         {/* Verification Staff */}

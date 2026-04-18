@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
@@ -10,6 +10,11 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Reset form to ensure no cached data
+    setForm({ rollNo: '', name: '', email: '', password: '', program: 'IMT', batch: '2025', semester: '2' });
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -40,11 +45,11 @@ export default function RegisterPage() {
         </div>
 
         <div className="glass-card p-10">
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6" autoComplete="off">
             <div className="grid grid-cols-2 gap-5">
               <div>
                 <label className="form-label text-base">Roll Number *</label>
-                <input className="form-input text-base" placeholder="2025IMT-001" value={form.rollNo} onChange={e => set('rollNo', e.target.value)} required />
+                <input className="form-input text-base" placeholder="2025IMT-001" value={form.rollNo} onChange={e => set('rollNo', e.target.value)} required autoComplete="off" />
               </div>
               <div>
                 <label className="form-label text-base">Program *</label>
@@ -56,12 +61,12 @@ export default function RegisterPage() {
 
             <div>
               <label className="form-label text-base">Full Name *</label>
-              <input className="form-input text-base" placeholder="Enter your full name" value={form.name} onChange={e => set('name', e.target.value)} required />
+              <input className="form-input text-base" placeholder="Enter your full name" value={form.name} onChange={e => set('name', e.target.value)} required autoComplete="off" />
             </div>
 
             <div>
               <label className="form-label text-base">Email *</label>
-              <input type="email" className="form-input text-base" placeholder="yourname@iiitm.ac.in" value={form.email} onChange={e => set('email', e.target.value)} required />
+              <input type="email" className="form-input text-base" placeholder="yourname@iiitm.ac.in" value={form.email} onChange={e => set('email', e.target.value)} required autoComplete="off" />
             </div>
 
             <div className="grid grid-cols-2 gap-5">
@@ -81,7 +86,7 @@ export default function RegisterPage() {
 
             <div>
               <label className="form-label text-base">Password *</label>
-              <input type="password" className="form-input text-base" placeholder="Min 6 characters" value={form.password} onChange={e => set('password', e.target.value)} required minLength={6} />
+              <input type="password" className="form-input text-base" placeholder="Min 6 characters" value={form.password} onChange={e => set('password', e.target.value)} required minLength={6} autoComplete="new-password" />
             </div>
 
             <button type="submit" disabled={loading} className="btn-primary w-full flex items-center justify-center gap-3 py-4 text-base font-bold">

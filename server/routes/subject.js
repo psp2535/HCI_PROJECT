@@ -2,6 +2,7 @@ import express from 'express';
 import { protect, authorize } from '../middleware/auth.js';
 import Subject from '../models/Subject.js';
 import Registration from '../models/Registration.js';
+import Student from '../models/Student.js';
 import { getSubjectsForStudent, selectSubjectsForStudent, getSubjectSelectionSummary } from '../controllers/studentSubjectController.js';
 
 const router = express.Router();
@@ -107,6 +108,45 @@ router.post('/select', protect, authorize('student'), async (req, res) => {
     res.json(result);
   } catch (err) {
     res.status(400).json({ 
+      success: false,
+      message: err.message 
+    });
+  }
+});
+
+// Get available subjects for current student (based on their program and semester)
+router.get('/available', protect, authorize('student'), async (req, res) => {
+  try {
+    // Get student's current details
+    const student = await Student.findById(req.user.id);
+    if (!student) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'Student not found' 
+      });
+    }
+
+    // Get available subjects for student's program and semester
+    const subjects = await Subject.find({
+      program: student.program,
+      semester: student.semester
+    }).sort({ type: 1, code: 1 });
+
+    // Separate core and elective subjects
+    const coreSubjects = subjects.filter(subject => subject.type === 'core');
+    const electiveSubjects = subjects.filter(subject => subject.type === 'elective');
+
+    res.json({
+      success: true,
+      program: student.program,
+      semester: student.semester,
+      totalSubjects: subjects.length,
+      coreSubjects,
+      electiveSubjects,
+      allSubjects: subjects
+    });
+  } catch (err) {
+    res.status(500).json({ 
       success: false,
       message: err.message 
     });

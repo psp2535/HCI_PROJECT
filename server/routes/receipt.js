@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { protect, authorize } from '../middleware/auth.js';
+import { uploadPDF, handleUploadError } from '../middleware/upload.js';
 import Receipt from '../models/Receipt.js';
 import Payment from '../models/Payment.js';
 import Registration from '../models/Registration.js';
@@ -11,6 +12,132 @@ import Student from '../models/Student.js';
 
 const router = express.Router();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Extract all receipt details from PDF text
+async function extractReceiptDetailsFromPDF(pdfBuffer) {
+  try {
+    const { default: pdfParse } = await import('pdf-parse');
+    const data = await pdfParse(pdfBuffer);
+    const text = data.text;
+    
+    const extracted = {
+      utrNumber: null,
+      amount: null,
+      paymentDate: null,
+      bankName: null
+    };
+    
+    // Extract UTR number
+    const utrPatterns = [
+      /UTR\s*No[:\s]*([A-Z0-9]+)/gi,
+      /Transaction\s*No[:\s]*([A-Z0-9]+)/gi,
+      /Ref\s*No[:\s]*([A-Z0-9]+)/gi,
+      /Reference\s*No[:\s]*([A-Z0-9]+)/gi,
+      /UTR[:\s]*([A-Z0-9]+)/gi,
+      /Transaction\s*ID[:\s]*([A-Z0-9]+)/gi,
+      /Transaction\s*Reference[:\s]*([A-Z0-9]+)/gi,
+      /Payment\s*ID[:\s]*([A-Z0-9]+)/gi,
+      /Receipt\s*No[:\s]*([A-Z0-9]+)/gi,
+      /([A-Z0-9]{12,})/g,
+      /\b[A-Z0-9]{10,}\b/g
+    ];
+    
+    for (const pattern of utrPatterns) {
+      const matches = text.match(pattern);
+      if (matches && matches.length > 0) {
+        const match = matches[0];
+        const utrMatch = match.match(/([A-Z0-9]{8,})/);
+        if (utrMatch && utrMatch[1]) {
+          extracted.utrNumber = utrMatch[1].trim();
+          break;
+        }
+      }
+    }
+    
+    // Extract amount (look for currency symbols and patterns)
+    const amountPatterns = [
+      /(?:Amount|Total|Paid|Sum|Fee)[\s:]*[¥$Rs]?[\s]*([0-9,]+(?:\.[0-9]{2})?)/gi,
+      /[¥$Rs]?\s*([0-9,]+(?:\.[0-9]{2})?)/gi,
+      /([0-9,]+(?:\.[0-9]{2})?)\s*(?:Rs|INR|¥|Rupees)/gi,
+      /(?:Academic\s*Fee|Tuition\s*Fee)[\s:]*[¥$Rs]?[\s]*([0-9,]+(?:\.[0-9]{2})?)/gi,
+      /\b([0-9,]{3,}(?:\.[0-9]{2})?)\b/g
+    ];
+    
+    for (const pattern of amountPatterns) {
+      const matches = text.match(pattern);
+      if (matches && matches.length > 0) {
+        const amountMatch = matches[0].match(/([0-9,]+(?:\.[0-9]{2})?)/);
+        if (amountMatch && amountMatch[1]) {
+          extracted.amount = parseFloat(amountMatch[1].replace(/,/g, ''));
+          break;
+        }
+      }
+    }
+    
+    // Extract payment date
+    const datePatterns = [
+      /(?:Date|Payment\s*Date|Paid\s*on|Transaction\s*Date)[\s:]*([0-9]{1,2}[\/\-][0-9]{1,2}[\/\-][0-9]{2,4})/gi,
+      /([0-9]{1,2}[\/\-][0-9]{1,2}[\/\-][0-9]{2,4})/gi,
+      /(?:Date|Payment\s*Date|Paid\s*on)[\s:]*([0-9]{4}[\/\-][0-9]{1,2}[\/\-][0-9]{1,2})/gi,
+      /([0-9]{4}[\/\-][0-9]{1,2}[\/\-][0-9]{1,2})/gi
+    ];
+    
+    for (const pattern of datePatterns) {
+      const matches = text.match(pattern);
+      if (matches && matches.length > 0) {
+        const dateMatch = matches[0].match(/([0-9]{1,2}[\/\-][0-9]{1,2}[\/\-][0-9]{2,4})/);
+        if (dateMatch && dateMatch[1]) {
+          const dateStr = dateMatch[1];
+          // Try to parse different date formats
+          const date = new Date(dateStr);
+          if (!isNaN(date.getTime())) {
+            extracted.paymentDate = date.toISOString().split('T')[0];
+            break;
+          }
+        }
+      }
+    }
+    
+    // Extract bank name
+    const bankPatterns = [
+      /(?:Bank|Payment\s*via|Paid\s*through)[\s:]*([A-Za-z\s]+?)(?:\n|$)/gi,
+      /([A-Za-z\s]+Bank)(?:\n|$)/gi,
+      /([A-Za-z\s]+Payment)(?:\n|$)/gi,
+      /(?:Merchant|Biller|Payee)[\s:]*([A-Za-z\s]+?)(?:\n|$)/gi,
+      /([A-Za-z\s]+(?:Bank|Payments|Pay))/gi
+    ];
+    
+    for (const pattern of bankPatterns) {
+      const matches = text.match(pattern);
+      if (matches && matches.length > 0) {
+        const bankMatch = matches[0].match(/([A-Za-z\s]{3,})/);
+        if (bankMatch && bankMatch[1]) {
+          extracted.bankName = bankMatch[1].trim();
+          break;
+        }
+      }
+    }
+    
+    console.log('PDF Text Sample:', text.substring(0, 500) + '...');
+    console.log('Extracted details:', extracted);
+    
+    // Log what was found for debugging
+    console.log('UTR found:', !!extracted.utrNumber);
+    console.log('Amount found:', !!extracted.amount);
+    console.log('Date found:', !!extracted.paymentDate);
+    console.log('Bank found:', !!extracted.bankName);
+    
+    return extracted;
+  } catch (error) {
+    console.error('Error extracting details from PDF:', error);
+    return {
+      utrNumber: null,
+      amount: null,
+      paymentDate: null,
+      bankName: null
+    };
+  }
+}
 
 // Convert number to words (simple implementation)
 function numberToWords(num) {
@@ -246,16 +373,294 @@ router.get('/my-receipts', protect, authorize('student'), async (req, res) => {
   }
 });
 
-// Download receipt PDF
+// Download receipt PDF (only for receipt owner or admin)
 router.get('/download/:receiptId', protect, async (req, res) => {
   try {
     const receipt = await Receipt.findById(req.params.receiptId);
     if (!receipt) return res.status(404).json({ message: 'Receipt not found' });
+    
+    // Check if user is the receipt owner or admin
+    if (req.user.role !== 'admin' && receipt.studentId.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    
     const filePath = path.join(__dirname, '..', receipt.pdfPath);
     if (!fs.existsSync(filePath)) return res.status(404).json({ message: 'PDF file not found' });
     res.download(filePath);
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+});
+
+// Upload payment receipt (for students)
+router.post('/upload-receipt', protect, authorize('student'), uploadPDF, handleUploadError, async (req, res) => {
+  try {
+    const { utrNumber, amount, paymentDate, bankName, manualEntry } = req.body;
+    const receiptFile = req.file;
+    
+    // Use manual values as defaults
+    let finalUTR = utrNumber;
+    let finalAmount = amount;
+    let finalPaymentDate = paymentDate;
+    let finalBankName = bankName || 'Unknown';
+    
+    // Extract all details from PDF if file uploaded and not manual entry
+    if (receiptFile && !manualEntry) {
+      try {
+        const extracted = await extractReceiptDetailsFromPDF(receiptFile.buffer);
+        
+        // Use extracted values if available, otherwise keep manual values
+        if (extracted.utrNumber) {
+          finalUTR = extracted.utrNumber;
+          console.log('UTR extracted from PDF:', extracted.utrNumber);
+        }
+        
+        if (extracted.amount) {
+          finalAmount = extracted.amount.toString();
+          console.log('Amount extracted from PDF:', extracted.amount);
+        }
+        
+        if (extracted.paymentDate) {
+          finalPaymentDate = extracted.paymentDate;
+          console.log('Payment date extracted from PDF:', extracted.paymentDate);
+        }
+        
+        if (extracted.bankName) {
+          finalBankName = extracted.bankName;
+          console.log('Bank name extracted from PDF:', extracted.bankName);
+        }
+        
+        if (!extracted.utrNumber && !extracted.amount && !extracted.paymentDate && !extracted.bankName) {
+          console.log('Could not extract details from PDF, using manual entry');
+        }
+      } catch (error) {
+        console.error('Error extracting details from PDF:', error);
+      }
+    }
+    
+    // Validate required fields
+    if (manualEntry) {
+      // For manual entry, all fields must be provided
+      if (!finalUTR || !finalAmount || !finalPaymentDate) {
+        return res.status(400).json({ 
+          success: false,
+          message: 'UTR number, amount, and payment date are required for manual entry' 
+        });
+      }
+    } else {
+      // For PDF upload, at least one field should be provided (either manual or extracted)
+      if (!finalUTR && !finalAmount && !finalPaymentDate) {
+        return res.status(400).json({ 
+          success: false,
+          message: 'Please provide at least UTR number, amount, or payment date' 
+        });
+      }
+    }
+    
+    // Check if receipt with this UTR already exists
+    const existingReceipt = await Receipt.findOne({ transactionNo: finalUTR });
+    if (existingReceipt) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'A receipt with this UTR number already exists' 
+      });
+    }
+    
+    // Get student details for receipt
+    const student = await Student.findById(req.user.id);
+    if (!student) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Student not found' 
+      });
+    }
+    
+    // Create new receipt record
+    const receiptData = {
+      studentId: req.user.id,
+      rollNo: student.rollNo,
+      studentName: student.name,
+      program: student.program,
+      semester: student.semester || student.currentSemester,
+      academicYear: '2025-26',
+      type: 'academic', // Default to academic fee
+      transactionNo: finalUTR,
+      bankName: finalBankName,
+      transactionDate: new Date(finalPaymentDate),
+      totalAmount: parseFloat(finalAmount),
+      amountInWords: `Rupees ${finalAmount} Only`,
+      breakdown: [{
+        particular: 'Academic Fee',
+        amount: parseFloat(finalAmount)
+      }]
+    };
+    
+    // Add PDF path if file was uploaded
+    if (receiptFile && !manualEntry) {
+      receiptData.pdfPath = `receipts/${receiptFile.filename}`;
+    }
+    
+    const receipt = new Receipt(receiptData);
+    
+    await receipt.save();
+    
+    // Update or create payment record
+    await Payment.findOneAndUpdate(
+      { studentId: req.user.id },
+      {
+        studentId: req.user.id,
+        status: 'submitted',
+        transactions: [{
+          amount: parseFloat(finalAmount),
+          date: new Date(finalPaymentDate),
+          utrNumber: finalUTR,
+          bankName: finalBankName,
+          receiptId: receipt._id
+        }],
+        submittedAt: new Date()
+      },
+      { upsert: true, new: true }
+    );
+    
+    // Check if any details were extracted from PDF
+    const hasExtractedDetails = receiptFile && !manualEntry && (
+      (finalUTR && finalUTR !== utrNumber) ||
+      (finalAmount && finalAmount !== amount) ||
+      (finalPaymentDate && finalPaymentDate !== paymentDate) ||
+      (finalBankName && finalBankName !== (bankName || 'Unknown'))
+    );
+    
+    let message = 'Receipt uploaded successfully! Your payment is now pending verification.';
+    if (hasExtractedDetails) {
+      const extractedInfo = [];
+      if (finalUTR && finalUTR !== utrNumber) extractedInfo.push(`UTR: ${finalUTR}`);
+      if (finalAmount && finalAmount !== amount) extractedInfo.push(`Amount: ¥${finalAmount}`);
+      if (finalPaymentDate && finalPaymentDate !== paymentDate) extractedInfo.push(`Date: ${finalPaymentDate}`);
+      if (finalBankName && finalBankName !== (bankName || 'Unknown')) extractedInfo.push(`Bank: ${finalBankName}`);
+      
+      message = `Details automatically extracted from PDF: ${extractedInfo.join(', ')}. Receipt uploaded successfully!`;
+    }
+    
+    res.json({
+      success: true,
+      message,
+      receipt,
+      extractedDetails: hasExtractedDetails ? {
+        utrNumber: finalUTR !== utrNumber ? finalUTR : null,
+        amount: finalAmount !== amount ? finalAmount : null,
+        paymentDate: finalPaymentDate !== paymentDate ? finalPaymentDate : null,
+        bankName: finalBankName !== (bankName || 'Unknown') ? finalBankName : null
+      } : null
+    });
+    
+  } catch (err) {
+    console.error('Receipt upload error:', err);
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to upload receipt. Please try again.' 
+    });
+  }
+});
+
+// Get student's uploaded receipts
+router.get('/my-receipts', protect, authorize('student'), async (req, res) => {
+  try {
+    const receipts = await Receipt.find({ studentId: req.user.id })
+      .sort({ uploadedAt: -1 });
+    
+    res.json({
+      success: true,
+      receipts
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Get all receipts for accounts staff verification
+router.get('/all-receipts', protect, authorize('admin', 'verification_staff'), async (req, res) => {
+  try {
+    const { status } = req.query;
+    
+    let query = {};
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+    
+    const receipts = await Receipt.find(query)
+      .populate('studentId', 'name rollNo program semester email')
+      .sort({ uploadedAt: -1 });
+    
+    res.json({
+      success: true,
+      receipts
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Verify receipt (for accounts staff)
+router.post('/verify/:receiptId', protect, authorize('admin', 'verification_staff'), async (req, res) => {
+  try {
+    const { receiptId } = req.params;
+    const { action } = req.body; // 'verify' or 'reject'
+    
+    if (!['verify', 'reject'].includes(action)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid action. Must be verify or reject.'
+      });
+    }
+    
+    const receipt = await Receipt.findById(receiptId).populate('studentId');
+    if (!receipt) {
+      return res.status(404).json({
+        success: false,
+        message: 'Receipt not found.'
+      });
+    }
+    
+    // Update receipt status
+    receipt.status = action === 'verify' ? 'verified' : 'rejected';
+    receipt.verifiedBy = req.user.id;
+    receipt.verifiedAt = new Date();
+    await receipt.save();
+    
+    // Update payment status if verified
+    if (action === 'verify') {
+      await Payment.findOneAndUpdate(
+        { studentId: receipt.studentId._id },
+        { 
+          status: 'verified',
+          verifiedAt: new Date(),
+          verificationStatus: 'approved'
+        }
+      );
+      
+      // Update registration status
+      await Registration.findOneAndUpdate(
+        { studentId: receipt.studentId._id },
+        { 
+          verificationStatus: 'approved',
+          paymentVerified: true,
+          paymentVerifiedAt: new Date()
+        }
+      );
+    }
+    
+    res.json({
+      success: true,
+      message: `Receipt ${action === 'verify' ? 'verified' : 'rejected'} successfully.`,
+      receipt
+    });
+    
+  } catch (err) {
+    console.error('Receipt verification error:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to verify receipt. Please try again.'
+    });
   }
 });
 

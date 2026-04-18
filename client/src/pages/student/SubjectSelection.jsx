@@ -19,10 +19,10 @@ export default function SubjectSelection() {
     const load = async () => {
       try {
         const [subRes, regRes] = await Promise.all([
-          api.get(`/subjects?program=${user?.program}&semester=${user?.semester}`),
+          api.get('/subjects/available'),
           api.get('/student/registration-status')
         ]);
-        setSubjects(subRes.data);
+        setSubjects(subRes.data.allSubjects || []);
         setRegistration(regRes.data);
         if (regRes.data?.selectedSubjects) setSelected(regRes.data.selectedSubjects.map(s => s._id || s));
         if (regRes.data?.backlogSubjects) setBacklogs(regRes.data.backlogSubjects.map(s => s._id || s));
@@ -44,10 +44,13 @@ export default function SubjectSelection() {
   };
 
   const handleSubmit = async () => {
+    // Get all subjects (core + selected electives)
+    const allSelectedSubjects = [...new Set([...coreSubjects.map(s => s._id), ...selected])];
+    
     if (totalCredits > 32) { toast.error('Total credits exceed 32!'); return; }
     setSaving(true);
     try {
-      await api.post('/subjects/select', { subjectIds: selected, backlogSubjectIds: backlogs });
+      await api.post('/subjects/select', { subjectIds: allSelectedSubjects, backlogSubjectIds: backlogs });
       toast.success('Subjects saved successfully!');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to save subjects');
@@ -113,9 +116,9 @@ export default function SubjectSelection() {
                 {coreSubjects.map((sub, i) => (
                   <tr key={sub._id} className="table-row" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                     <td className="py-4 px-4 text-slate-400 font-medium">{i + 1}</td>
-                    <td className="py-4 px-4 font-mono text-blue-300 text-sm font-semibold">{sub.code}</td>
-                    <td className="py-4 px-4 text-white font-medium">{sub.name}</td>
-                    <td className="py-4 px-4 text-slate-400 font-mono text-sm">{sub.ltp}</td>
+                    <td className="py-4 px-4 font-mono text-blue-300 text-sm font-semibold">{sub.subjectCode}</td>
+                    <td className="py-4 px-4 text-white font-medium">{sub.subjectName}</td>
+                    <td className="py-4 px-4 text-slate-400 font-mono text-sm">{sub.ltp || 'N/A'}</td>
                     <td className="py-4 px-4"><span className="px-3 py-1 rounded-full text-sm font-bold" style={{ background: 'rgba(37,99,235,0.2)', color: '#93c5fd' }}>{sub.credits}</span></td>
                     <td className="py-4 px-4">
                       <span className="flex items-center gap-2 text-sm text-emerald-400 font-medium">
@@ -148,9 +151,9 @@ export default function SubjectSelection() {
                     <div className={`w-6 h-6 rounded-lg flex items-center justify-center border-2 transition-all ${isSelected ? 'bg-purple-600 border-purple-600' : 'border-slate-600'}`}>
                       {isSelected && <CheckCircle size={14} className="text-white" />}
                     </div>
-                    <span className="font-mono text-purple-300 text-sm font-semibold">{sub.code}</span>
-                    <span className="text-white text-base font-medium">{sub.name}</span>
-                    <span className="text-slate-500 text-sm">{sub.ltp}</span>
+                    <span className="font-mono text-purple-300 text-sm font-semibold">{sub.subjectCode}</span>
+                    <span className="text-white text-base font-medium">{sub.subjectName}</span>
+                    <span className="text-slate-500 text-sm">{sub.ltp || 'N/A'}</span>
                   </div>
                   <span className="px-3 py-1 rounded-full text-sm font-bold" style={{ background: 'rgba(124,58,237,0.2)', color: '#c4b5fd' }}>{sub.credits} cr</span>
                 </div>

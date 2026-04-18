@@ -67,4 +67,24 @@ router.post('/student/register', async (req, res) => {
   }
 });
 
+// Register new staff (admin only in production, open for demo)
+router.post('/staff/register', async (req, res) => {
+  try {
+    const { employeeId, name, email, password, role, department } = req.body;
+    
+    const existing = await Staff.findOne({ $or: [{ employeeId }, { email }] });
+    if (existing) return res.status(400).json({ message: 'Staff with this employee ID or email already exists' });
+    
+    const staff = await Staff.create({ employeeId, name, email, passwordHash: password, role, department });
+    const token = generateToken(staff._id, staff.role);
+    
+    res.status(201).json({
+      token,
+      user: { id: staff._id, name: staff.name, employeeId: staff.employeeId, role: staff.role, department: staff.department }
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 export default router;

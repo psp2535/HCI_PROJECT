@@ -7,6 +7,7 @@ const navItems = [
   { to: '/student/profile', icon: User, label: 'Personal Info' },
   { to: '/student/subjects', icon: BookOpen, label: 'Subject Selection' },
   { to: '/student/payment', icon: CreditCard, label: 'Fee Payment' },
+  { to: '/student/fee-receipts', icon: Receipt, label: 'Fee Receipts' },
   { to: '/student/receipts', icon: Receipt, label: 'Receipts' },
 ];
 

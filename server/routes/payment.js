@@ -3,6 +3,7 @@ import multer from 'multer';
 import { protect, authorize } from '../middleware/auth.js';
 import Payment from '../models/Payment.js';
 import Registration from '../models/Registration.js';
+import Staff from '../models/Staff.js';
 
 const router = express.Router();
 const upload = multer({ dest: 'uploads/', limits: { fileSize: 5 * 1024 * 1024 } });
@@ -30,6 +31,12 @@ router.post('/submit', protect, authorize('student'), upload.single('paymentProo
       status: 'submitted',
       paymentProofUrl: req.file ? `/uploads/${req.file.filename}` : undefined
     };
+    
+    // Auto-assign to available verification staff
+    const availableStaff = await Staff.findOne({ role: 'verification_staff' });
+    if (availableStaff) {
+      paymentData.assignedTo = availableStaff._id;
+    }
     
     let payment;
     if (existingPayment) {

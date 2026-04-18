@@ -25,12 +25,15 @@ const paymentSchema = new mongoose.Schema({
   messFee: { type: Number, default: 18000 },
   
   paymentProofUrl: String,
+  assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'Staff' }, // Assigned verification staff
+  verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Staff' }, // Staff who verified
   status: { 
     type: String, 
     enum: ['submitted', 'verified', 'rejected'], 
     default: 'submitted' 
   },
-  submittedAt: { type: Date, default: Date.now }
+  submittedAt: { type: Date, default: Date.now },
+  verifiedAt: Date
 });
 
 export default mongoose.model('Payment', paymentSchema);

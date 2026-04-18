@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../../utils/api';
 import toast from 'react-hot-toast';
-import { CheckCircle, XCircle, Users, CreditCard, BarChart2, Receipt, Loader, Database } from 'lucide-react';
+import { CheckCircle, XCircle, Users, CreditCard, BarChart2, Receipt, Loader, Database, Upload, FileText } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
@@ -12,6 +12,8 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [seeding, setSeeding] = useState(false);
   const [processing, setProcessing] = useState('');
+  const [uploadingPDF, setUploadingPDF] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
 
   const load = async () => {
     try {
@@ -43,6 +45,34 @@ export default function AdminDashboard() {
       await load();
     } catch (err) { toast.error('Failed'); }
     finally { setProcessing(''); }
+  };
+
+  const handleSubjectPDFUpload = async () => {
+    if (!selectedFile) {
+      toast.error('Please select a PDF file first');
+      return;
+    }
+
+    setUploadingPDF(true);
+    try {
+      const formData = new FormData();
+      formData.append('pdf', selectedFile);
+      
+      const response = await api.post('/admin/upload-subjects-pdf', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      toast.success(response.data.message || 'Subjects uploaded successfully!');
+      setSelectedFile(null);
+      // Reset file input
+      document.getElementById('pdf-upload-input').value = '';
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Upload failed');
+    } finally {
+      setUploadingPDF(false);
+    }
   };
 
   const pieData = [
@@ -102,6 +132,32 @@ export default function AdminDashboard() {
               {seeding ? <Loader size={16} className="animate-spin" /> : <Database size={16} />}
               {seeding ? 'Seeding demo data...' : 'Seed Demo Data & Users'}
             </button>
+            
+            {/* Subject PDF Upload */}
+            <div className="p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)' }}>
+              <p className="text-slate-400 mb-3 font-semibold flex items-center gap-2">
+                <FileText size={14} />
+                Upload Subject PDF
+              </p>
+              <div className="space-y-2">
+                <input
+                  id="pdf-upload-input"
+                  type="file"
+                  accept=".pdf"
+                  onChange={(e) => setSelectedFile(e.target.files[0])}
+                  className="w-full text-xs text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-medium file:bg-blue-600 file:text-white hover:file:bg-blue-700"
+                />
+                <button
+                  onClick={handleSubjectPDFUpload}
+                  disabled={uploadingPDF || !selectedFile}
+                  className="w-full flex items-center justify-center gap-2 py-2 px-3 text-xs font-medium rounded-lg transition-all bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {uploadingPDF ? <Loader size={12} className="animate-spin" /> : <Upload size={12} />}
+                  {uploadingPDF ? 'Processing...' : 'Upload & Process'}
+                </button>
+              </div>
+            </div>
+            
             <div className="p-3 rounded-xl text-xs" style={{ background: 'rgba(255,255,255,0.04)' }}>
               <p className="text-slate-400 mb-2 font-semibold">Demo Credentials (after seeding):</p>
               {[

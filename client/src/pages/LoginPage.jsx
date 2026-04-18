@@ -1,9 +1,9 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
-import { GraduationCap, Users, Lock, Eye, EyeOff, Loader } from 'lucide-react';
+import { GraduationCap, Users, Lock, Eye, EyeOff, Loader, UserCheck, BookOpen, Shield } from 'lucide-react';
 
 export default function LoginPage() {
   const [loginType, setLoginType] = useState('student');
@@ -12,6 +12,14 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    const type = searchParams.get('type');
+    if (type === 'staff') {
+      setLoginType('staff');
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -81,18 +89,22 @@ export default function LoginPage() {
 
         {/* Quick Demo Buttons */}
         <div className="relative z-10 mt-8 w-full max-w-md">
-          <p className="text-slate-500 text-sm font-semibold mb-4 text-center tracking-wide">QUICK DEMO ACCESS</p>
-          <div className="grid grid-cols-2 gap-3">
+          <p className="text-slate-500 text-sm font-semibold mb-6 text-center tracking-wide">QUICK DEMO ACCESS</p>
+          <div className="grid grid-cols-2 gap-4">
             {[
-              ['Student', 'student', '#2563eb'],
-              ['Accounts', 'staff', '#059669'],
-              ['Faculty', 'faculty', '#7c3aed'],
-              ['Admin', 'admin', '#dc2626'],
-            ].map(([label, type, color]) => (
+              ['Student', 'student', '#2563eb', GraduationCap, 'John Doe'],
+              ['Accounts Staff', 'staff', '#059669', UserCheck, 'Raj Kumar'],
+              ['Faculty', 'faculty', '#7c3aed', BookOpen, 'Dr. Smith'],
+              ['Admin', 'admin', '#dc2626', Shield, 'Admin User'],
+            ].map(([label, type, color, Icon, name]) => (
               <button key={type} onClick={() => { setLoginType(type === 'student' ? 'student' : 'staff'); fillDemo(type); }}
-                className="text-sm py-3 px-4 rounded-xl font-semibold transition-all hover:scale-105 hover:shadow-lg"
+                className="p-4 rounded-2xl font-semibold transition-all hover:scale-105 hover:shadow-xl flex flex-col items-center gap-3"
                 style={{ background: `${color}22`, border: `1px solid ${color}44`, color: '#e2e8f0' }}>
-                {label}
+                <Icon size={32} style={{ color }} />
+                <div className="text-center">
+                  <div className="text-sm font-medium">{label}</div>
+                  <div className="text-xs text-slate-400 mt-1">{name}</div>
+                </div>
               </button>
             ))}
           </div>
@@ -168,21 +180,32 @@ export default function LoginPage() {
             </form>
 
             <div className="mt-8 pt-8" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-              <p className="text-center text-slate-500 text-sm mb-4">New student? Register here</p>
-              <Link to="/register" className="block text-center text-blue-400 text-base font-semibold hover:text-blue-300 transition-colors">
-                Create Account →
-              </Link>
+              <p className="text-center text-slate-500 text-sm mb-3">Create new account</p>
+              <div className="space-y-2">
+                <Link to="/register" className="block text-center text-blue-400 text-base font-semibold hover:text-blue-300 transition-colors">
+                  Student Registration →
+                </Link>
+                <Link to={`/staff-register?type=staff`} className="block text-center text-green-400 text-base font-semibold hover:text-green-300 transition-colors" onClick={() => setLoginType('staff')}>
+                  Staff/Faculty/Admin Registration →
+                </Link>
+              </div>
             </div>
 
             {/* Mobile demo buttons */}
             <div className="lg:hidden mt-6">
               <p className="text-slate-500 text-xs font-semibold mb-3 text-center tracking-wide">QUICK DEMO</p>
-              <div className="grid grid-cols-2 gap-2">
-                {[['Student', 'student'], ['Accounts', 'staff'], ['Faculty', 'faculty'], ['Admin', 'admin']].map(([label, type]) => (
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  ['Student', 'student', '#2563eb', GraduationCap],
+                  ['Accounts Staff', 'staff', '#059669', UserCheck],
+                  ['Faculty', 'faculty', '#7c3aed', BookOpen],
+                  ['Admin', 'admin', '#dc2626', Shield],
+                ].map(([label, type, color, Icon]) => (
                   <button key={type} onClick={() => { setLoginType(type === 'student' ? 'student' : 'staff'); fillDemo(type); }}
-                    className="text-sm py-2 px-3 rounded-lg font-medium text-slate-300 transition-all hover:scale-105"
-                    style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                    {label}
+                    className="p-3 rounded-xl font-medium text-slate-300 transition-all hover:scale-105 flex flex-col items-center gap-2"
+                    style={{ background: `${color}22`, border: `1px solid ${color}44` }}>
+                    <Icon size={24} style={{ color }} />
+                    <div className="text-xs text-center">{label}</div>
                   </button>
                 ))}
               </div>

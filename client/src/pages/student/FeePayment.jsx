@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../../utils/api';
 import toast from 'react-hot-toast';
-import { CreditCard, Plus, Trash2, Loader, Upload, CheckCircle } from 'lucide-react';
+import { CreditCard, Plus, Trash2, Loader, Upload, CheckCircle, ExternalLink } from 'lucide-react';
 
 const FEE_BREAKDOWN = {
   academic: [
@@ -22,9 +22,10 @@ const FEE_BREAKDOWN = {
 export default function FeePayment() {
   const [payment, setPayment] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [transactions, setTransactions] = useState([{ amount: '', date: '', utrNo: '', bankName: '', depositorName: '', debitAccountNo: '' }]);
-  const [file, setFile] = useState(null);
+  const [paymentStatus, setPaymentStatus] = useState('pending');
+  
+  // Direct payment URL
+  const PAYMENT_URL = 'https://octopod.co.in/student/admission/08d02b1d9ee5fa9d0be8bb55f8c5dd3c';
 
   const academicTotal = FEE_BREAKDOWN.academic.reduce((s, i) => s + i.amount, 0);
   const messTotal = FEE_BREAKDOWN.mess.reduce((s, i) => s + i.amount, 0);
@@ -144,67 +145,68 @@ export default function FeePayment() {
           </div>
         </div>
       ) : (
-        /* Payment Form */
-        <form onSubmit={handleSubmit} className="glass-card p-6 space-y-5">
-          <h3 className="text-white font-semibold">Enter Payment Details</h3>
-          <p className="text-slate-400 text-sm -mt-3">As per Details of Fees Payment Form. Add up to 3 transactions if paid in parts.</p>
+        /* Direct Payment Link */
+        <div className="glass-card p-6 space-y-5">
+          <h3 className="text-white font-semibold">Complete Your Payment</h3>
+          <p className="text-slate-400 text-sm -mt-3">Click the button below to proceed to the payment portal.</p>
 
-          {transactions.map((txn, i) => (
-            <div key={i} className="p-4 rounded-xl space-y-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-              <div className="flex items-center justify-between">
-                <p className="text-slate-300 text-sm font-medium">Transaction {i + 1}</p>
-                {i > 0 && <button type="button" onClick={() => removeTransaction(i)} className="text-red-400 hover:text-red-300"><Trash2 size={16} /></button>}
+          <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-slate-400 text-sm">Payment Amount</p>
+                <p className="text-white font-bold text-xl">₹{grandTotal.toLocaleString('en-IN')}</p>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div>
-                  <label className="form-label">Amount (₹) *</label>
-                  <input type="number" className="form-input" placeholder="e.g. 93000" value={txn.amount} onChange={e => updateTxn(i, 'amount', e.target.value)} required={i === 0} />
-                </div>
-                <div>
-                  <label className="form-label">Date *</label>
-                  <input type="date" className="form-input" value={txn.date} onChange={e => updateTxn(i, 'date', e.target.value)} required={i === 0} />
-                </div>
-                <div>
-                  <label className="form-label">UTR Number *</label>
-                  <input type="text" className="form-input" placeholder="12-digit UTR" value={txn.utrNo} onChange={e => updateTxn(i, 'utrNo', e.target.value)} required={i === 0} />
-                </div>
-                <div>
-                  <label className="form-label">Bank Name *</label>
-                  <input type="text" className="form-input" placeholder="e.g. State Bank of India" value={txn.bankName} onChange={e => updateTxn(i, 'bankName', e.target.value)} required={i === 0} />
-                </div>
-                <div>
-                  <label className="form-label">Depositor Name</label>
-                  <input type="text" className="form-input" placeholder="Name of depositor" value={txn.depositorName} onChange={e => updateTxn(i, 'depositorName', e.target.value)} />
-                </div>
-                <div>
-                  <label className="form-label">Debit Account No.</label>
-                  <input type="text" className="form-input" placeholder="Account number" value={txn.debitAccountNo} onChange={e => updateTxn(i, 'debitAccountNo', e.target.value)} />
-                </div>
+              <div className="text-right">
+                <p className="text-slate-400 text-sm">Payment Method</p>
+                <p className="text-white font-medium">Online Payment</p>
               </div>
             </div>
-          ))}
-
-          {transactions.length < 3 && (
-            <button type="button" onClick={addTransaction} className="flex items-center gap-2 text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors">
-              <Plus size={16} /> Add Another Transaction
-            </button>
-          )}
-
-          {/* Upload Proof */}
-          <div>
-            <label className="form-label">Upload Payment Screenshot / Receipt</label>
-            <label className="flex flex-col items-center justify-center h-24 rounded-xl cursor-pointer transition-all" style={{ border: '2px dashed rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.03)' }}>
-              <Upload size={20} className="text-slate-400 mb-1" />
-              <span className="text-slate-400 text-sm">{file ? file.name : 'Click to upload (max 5MB)'}</span>
-              <input type="file" className="hidden" accept="image/*,.pdf" onChange={e => setFile(e.target.files[0])} />
-            </label>
+            
+            <div className="border-t border-slate-700 pt-4">
+              <p className="text-slate-400 text-sm mb-3">Payment Link:</p>
+              <div className="bg-slate-900/50 rounded-lg p-3 break-all">
+                <code className="text-blue-400 text-sm">{PAYMENT_URL}</code>
+              </div>
+            </div>
           </div>
 
-          <button type="submit" disabled={submitting} className="btn-primary flex items-center gap-2 px-8 py-3">
-            {submitting ? <Loader size={18} className="animate-spin" /> : <CreditCard size={18} />}
-            {submitting ? 'Submitting...' : 'Submit Payment Details'}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              onClick={() => window.open(PAYMENT_URL, '_blank')}
+              className="btn-primary flex items-center justify-center gap-2 px-6 py-3 flex-1"
+            >
+              <ExternalLink size={18} />
+              Open Payment Portal
+            </button>
+            
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(PAYMENT_URL);
+                toast.success('Payment link copied to clipboard!');
+              }}
+              className="btn-secondary flex items-center justify-center gap-2 px-6 py-3"
+            >
+              Copy Link
+            </button>
+          </div>
+
+          <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+            <p className="text-blue-300 text-sm">
+              <strong>Important:</strong> After completing payment, please return to this page and mark your payment as completed.
+            </p>
+          </div>
+
+          <button
+            onClick={() => {
+              setPaymentStatus('completed');
+              toast.success('Payment marked as completed! Please wait for verification.');
+            }}
+            className="btn-success flex items-center justify-center gap-2 px-6 py-3 w-full"
+          >
+            <CheckCircle size={18} />
+            Mark Payment as Completed
           </button>
-        </form>
+        </div>
       )}
     </div>
   );

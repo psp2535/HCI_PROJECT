@@ -6,10 +6,10 @@ import Student from '../models/Student.js';
 
 const router = express.Router();
 
-// Get all pending payments for verification
+// Get all pending payments for verification (assigned to current staff)
 router.get('/pending', protect, authorize('verification_staff'), async (req, res) => {
   try {
-    const payments = await Payment.find({ status: 'submitted' })
+    const payments = await Payment.find({ status: 'submitted', assignedTo: req.user.id })
       .populate({ path: 'studentId', select: 'name rollNo program semester' })
       .populate({ path: 'registrationId', select: 'academicYear semester overallStatus' })
       .sort({ submittedAt: -1 });
@@ -19,10 +19,11 @@ router.get('/pending', protect, authorize('verification_staff'), async (req, res
   }
 });
 
-// Get all payments (all statuses)
+// Get all payments (all statuses) - filtered by assigned staff for verification_staff, all for admin
 router.get('/all', protect, authorize('verification_staff', 'admin'), async (req, res) => {
   try {
-    const payments = await Payment.find()
+    const filter = req.user.role === 'admin' ? {} : { assignedTo: req.user.id };
+    const payments = await Payment.find(filter)
       .populate({ path: 'studentId', select: 'name rollNo program semester email' })
       .populate({ path: 'registrationId', select: 'academicYear semester overallStatus' })
       .sort({ submittedAt: -1 });
@@ -39,8 +40,15 @@ router.post('/verify/:paymentId', protect, authorize('verification_staff'), asyn
     const payment = await Payment.findById(req.params.paymentId);
     if (!payment) return res.status(404).json({ message: 'Payment not found' });
 
+    // Verify this payment is assigned to the current staff
+    if (payment.assignedTo && payment.assignedTo.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'You are not authorized to verify this payment' });
+    }
+
     const newStatus = action === 'approve' ? 'verified' : 'rejected';
     payment.status = newStatus;
+    payment.verifiedBy = req.user.id;
+    payment.verifiedAt = new Date();
     await payment.save();
 
     const regUpdate = action === 'approve'
@@ -78,13 +86,30 @@ router.post('/bulk-verify', protect, authorize('verification_staff'), async (req
   }
 });
 
-// Get verification stats
+// Assign payment to verification staff (admin only)
+router.post('/assign/:paymentId', protect, authorize('admin'), async (req, res) => {
+  try {
+    const { staffId } = req.body;
+    const payment = await Payment.findByIdAndUpdate(
+      req.params.paymentId, 
+      { assignedTo: staffId }, 
+      { new: true }
+    );
+    if (!payment) return res.status(404).json({ message: 'Payment not found' });
+    res.json({ message: 'Payment assigned successfully', payment });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Get verification stats (filtered by assigned staff for verification_staff, all for admin)
 router.get('/stats', protect, authorize('verification_staff', 'admin'), async (req, res) => {
   try {
-    const total = await Payment.countDocuments();
-    const pending = await Payment.countDocuments({ status: 'submitted' });
-    const verified = await Payment.countDocuments({ status: 'verified' });
-    const rejected = await Payment.countDocuments({ status: 'rejected' });
+    const filter = req.user.role === 'admin' ? {} : { assignedTo: req.user.id };
+    const total = await Payment.countDocuments(filter);
+    const pending = await Payment.countDocuments({ ...filter, status: 'submitted' });
+    const verified = await Payment.countDocuments({ ...filter, status: 'verified' });
+    const rejected = await Payment.countDocuments({ ...filter, status: 'rejected' });
     res.json({ total, pending, verified, rejected });
   } catch (err) {
     res.status(500).json({ message: err.message });
