@@ -34,11 +34,26 @@ app.get('/favicon.ico', (req, res) => {
 
 // Catch-all handler for frontend routes (SPA support)
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'client', 'dist', 'index.html'));
+  const indexPath = fs.existsSync(path.join(__dirname, '..', 'client', 'dist', 'index.html'))
+    ? path.join(__dirname, '..', 'client', 'dist', 'index.html')
+    : path.join(__dirname, 'client', 'dist', 'index.html');
+  
+  res.sendFile(indexPath);
 });
 
-// Serve static frontend first
-app.use(express.static(path.join(__dirname, '..', 'client', 'dist')));
+// Serve static frontend first - check multiple possible paths
+const frontendPath = path.join(__dirname, '..', 'client', 'dist');
+const alternativePath = path.join(__dirname, 'client', 'dist');
+
+if (fs.existsSync(frontendPath)) {
+  app.use(express.static(frontendPath));
+  console.log('Serving frontend from:', frontendPath);
+} else if (fs.existsSync(alternativePath)) {
+  app.use(express.static(alternativePath));
+  console.log('Serving frontend from:', alternativePath);
+} else {
+  console.log('Frontend build not found, expected paths:', frontendPath, alternativePath);
+}
 
 // API Routes
 import authRoutes from './routes/auth.js';
