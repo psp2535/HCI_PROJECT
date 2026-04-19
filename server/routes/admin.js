@@ -224,18 +224,27 @@ router.get('/promotion-stats', protect, authorize('admin'), async (req, res) => 
 // ── Upload subjects PDF ───────────────────────────────────────
 router.post('/upload-subjects-pdf', protect, authorize('admin'), uploadSubjectPDF, handleUploadError, async (req, res) => {
   try {
+    console.log('Subject PDF upload request received');
+    console.log('Files:', req.files);
+    console.log('File:', req.file);
+    console.log('Request body:', req.body);
+    
     if (!req.file) {
+      console.log('No file found in request');
       return res.status(400).json({ 
         success: false,
         message: 'No PDF file uploaded. Please upload a PDF file.' 
       });
     }
 
+    console.log('Processing PDF file:', req.file.originalname, 'Size:', req.file.size);
+    
     // Process the PDF buffer
     const result = await processSubjectPDF(req.file.buffer);
 
     res.json(result);
   } catch (err) {
+    console.error('Subject PDF upload error:', err);
     res.status(500).json({ 
       success: false,
       message: err.message 

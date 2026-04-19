@@ -75,11 +75,11 @@ export default function FeeReceipts() {
           receiptFile: null
         });
         setExtractedDetails({
-        utrNumber: null,
-        amount: null,
-        paymentDate: null,
-        bankName: null
-      });
+          utrNumber: null,
+          amount: null,
+          paymentDate: null,
+          bankName: null
+        });
         loadReceipts();
       }
     } catch (err) {

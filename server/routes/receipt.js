@@ -448,22 +448,28 @@ router.post('/upload-receipt', protect, authorize('student'), uploadPDF, handleU
         });
       }
     } else {
-      // For PDF upload, at least one field should be provided (either manual or extracted)
-      if (!finalUTR && !finalAmount && !finalPaymentDate) {
-        return res.status(400).json({ 
-          success: false,
-          message: 'Please provide at least UTR number, amount, or payment date' 
-        });
+      // For PDF upload, if file is uploaded, accept it even if no details are extracted
+      // The PDF processing should extract details, but if it fails, we still accept the upload
+      if (!receiptFile) {
+        // If no file uploaded, require at least one field
+        if (!finalUTR && !finalAmount && !finalPaymentDate) {
+          return res.status(400).json({ 
+            success: false,
+            message: 'Please upload a PDF file or provide at least UTR number, amount, or payment date' 
+          });
+        }
       }
     }
     
-    // Check if receipt with this UTR already exists
-    const existingReceipt = await Receipt.findOne({ transactionNo: finalUTR });
-    if (existingReceipt) {
-      return res.status(400).json({ 
-        success: false,
-        message: 'A receipt with this UTR number already exists' 
-      });
+    // Check if receipt with this UTR already exists (only if UTR is available)
+    if (finalUTR) {
+      const existingReceipt = await Receipt.findOne({ transactionNo: finalUTR });
+      if (existingReceipt) {
+        return res.status(400).json({ 
+          success: false,
+          message: 'A receipt with this UTR number already exists' 
+        });
+      }
     }
     
     // Get student details for receipt
@@ -484,14 +490,14 @@ router.post('/upload-receipt', protect, authorize('student'), uploadPDF, handleU
       semester: student.semester || student.currentSemester,
       academicYear: '2025-26',
       type: 'academic', // Default to academic fee
-      transactionNo: finalUTR,
+      transactionNo: finalUTR || `AUTO-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       bankName: finalBankName,
-      transactionDate: new Date(finalPaymentDate),
-      totalAmount: parseFloat(finalAmount),
-      amountInWords: `Rupees ${finalAmount} Only`,
+      transactionDate: finalPaymentDate ? new Date(finalPaymentDate) : new Date(),
+      totalAmount: finalAmount ? parseFloat(finalAmount) : 0,
+      amountInWords: finalAmount ? `Rupees ${finalAmount} Only` : 'Amount not specified',
       breakdown: [{
         particular: 'Academic Fee',
-        amount: parseFloat(finalAmount)
+        amount: finalAmount ? parseFloat(finalAmount) : 0
       }]
     };
     
@@ -511,9 +517,9 @@ router.post('/upload-receipt', protect, authorize('student'), uploadPDF, handleU
         studentId: req.user.id,
         status: 'submitted',
         transactions: [{
-          amount: parseFloat(finalAmount),
-          date: new Date(finalPaymentDate),
-          utrNumber: finalUTR,
+          amount: finalAmount ? parseFloat(finalAmount) : 0,
+          date: finalPaymentDate ? new Date(finalPaymentDate) : new Date(),
+          utrNumber: finalUTR || 'Auto-generated',
           bankName: finalBankName,
           receiptId: receipt._id
         }],
