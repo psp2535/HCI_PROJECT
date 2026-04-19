@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import api from '../../utils/api';
 import toast from 'react-hot-toast';
-import { CheckCircle, XCircle, Eye, MessageSquare, Loader, Filter, ChevronRight } from 'lucide-react';
+import { CheckCircle, XCircle, Eye, MessageSquare, Loader, Filter, ChevronRight, List } from 'lucide-react';
 
 export default function VerificationDashboard() {
   const location = useLocation();
@@ -15,6 +15,14 @@ export default function VerificationDashboard() {
   const [processing, setProcessing] = useState('');
   const [filter, setFilter] = useState('all');
   const [activeSection, setActiveSection] = useState('dashboard');
+
+  // Add debugging for component lifecycle
+  console.log('VerificationDashboard component rendering');
+  console.log('Current location:', location.pathname);
+  console.log('Active section:', activeSection);
+  console.log('Loading state:', loading);
+  console.log('Payments count:', payments.length);
+  console.log('Stats:', stats);
 
   // Set active section based on current route
   useEffect(() => {
@@ -30,31 +38,40 @@ export default function VerificationDashboard() {
 
   const load = async () => {
     try {
+      console.log('Starting load function for section:', activeSection);
       setLoading(true);
       
       // Always load stats for dashboard
+      console.log('Loading stats...');
       const statRes = await api.get('/verification/stats');
+      console.log('Stats response:', statRes.data);
       setStats(statRes.data);
       
       // Load section-specific data
+      console.log('Loading payments for section:', activeSection);
       if (activeSection === 'dashboard') {
         const payRes = await api.get('/verification/all');
+        console.log('Dashboard payments response:', payRes.data);
         setPayments(payRes.data || []);
       } else if (activeSection === 'pending') {
         const payRes = await api.get('/verification/all');
         const pendingPayments = (payRes.data || []).filter(p => p.status === 'submitted');
+        console.log('Pending payments:', pendingPayments);
         setPayments(pendingPayments);
       } else if (activeSection === 'all') {
         const payRes = await api.get('/verification/all');
+        console.log('All payments response:', payRes.data);
         setPayments(payRes.data || []);
       }
       
-      console.log('Payments loaded for section:', activeSection, payments.length);
+      console.log('Payments loaded for section:', activeSection, 'count:', payments.length);
       
     } catch(err) { 
       console.error('Error loading verification data:', err);
+      console.error('Error details:', err.response?.data || err.message);
     }
     finally { 
+      console.log('Load function completed, setting loading to false');
       setLoading(false); 
     }
   };
@@ -97,10 +114,16 @@ const filtered = filter === 'all' ? payments : payments.filter(p => {
 
 console.log('Filtered payments:', filtered);
 
-  if (loading) return <div className="flex justify-center h-64 items-center"><div className="spinner" /></div>;
+  if (loading) {
+    console.log('Showing loading spinner...');
+    return <div className="flex justify-center h-64 items-center"><div className="spinner" /></div>;
+  }
+
+  console.log('Checking active section for rendering:', activeSection);
 
   // Render different content based on active section
   if (activeSection === 'pending') {
+    console.log('Rendering pending section...');
     return (
       <div className="space-y-6 animate-fade-in-up">
         <div className="glass-card p-6">
@@ -188,6 +211,7 @@ console.log('Filtered payments:', filtered);
   }
 
   if (activeSection === 'all') {
+    console.log('Rendering all payments section...');
     return (
       <div className="space-y-6 animate-fade-in-up">
         <div className="glass-card p-6">
@@ -253,6 +277,7 @@ console.log('Filtered payments:', filtered);
   }
 
   // Default Dashboard View
+  console.log('Rendering default dashboard view...');
   return (
     <div className="space-y-6 animate-fade-in-up">
       {/* Stats */}
