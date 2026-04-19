@@ -33,10 +33,26 @@ router.post('/submit', protect, authorize('student'), upload.single('paymentProo
     };
     
     // Auto-assign to available verification staff
-    const availableStaff = await Staff.findOne({ role: 'verification_staff' });
-    if (availableStaff) {
-      paymentData.assignedTo = availableStaff._id;
+    let availableStaff = await Staff.findOne({ role: 'verification_staff' });
+    console.log('Available verification staff:', availableStaff);
+    
+    if (!availableStaff) {
+      console.log('No verification staff found, creating default verification staff');
+      // Create default verification staff if none exists
+      availableStaff = new Staff({
+        employeeId: 'VER001',
+        name: 'Verification Staff',
+        email: 'verification@abviiitm.ac.in',
+        passwordHash: 'Verification@123',
+        role: 'verification_staff',
+        department: 'Accounts'
+      });
+      await availableStaff.save();
+      console.log('Default verification staff created:', availableStaff._id);
     }
+    
+    paymentData.assignedTo = availableStaff._id;
+    console.log('Payment assigned to staff:', availableStaff._id);
     
     let payment;
     if (existingPayment) {

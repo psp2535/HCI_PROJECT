@@ -50,18 +50,43 @@ router.post('/staff/login', async (req, res) => {
 // Register new student (admin only in production, open for demo)
 router.post('/student/register', async (req, res) => {
   try {
-    const { rollNo, name, email, password, program, batch, semester } = req.body;
+    const { rollNo, name, email, password, program, batch, batchYear } = req.body;
     
-    const existing = await Student.findOne({ $or: [{ rollNo }, { email }] });
-    if (existing) return res.status(400).json({ message: 'Student with this roll no or email already exists' });
+    const existingStudent = await Student.findOne({ rollNo });
+    if (existingStudent) return res.status(400).json({ message: 'Student already exists' });
     
-    const student = await Student.create({ rollNo, name, email, passwordHash: password, program, batch, semester });
+    const student = new Student({ rollNo, name, email, passwordHash: password, program, batch, batchYear });
+    await student.save();
+    
     const token = generateToken(student._id, 'student');
-    
     res.status(201).json({
       token,
       user: { id: student._id, name: student.name, rollNo: student.rollNo, role: 'student', program: student.program }
     });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Create default verification staff (for testing/demo)
+router.post('/create-default-staff', async (req, res) => {
+  try {
+    const existingStaff = await Staff.findOne({ role: 'verification_staff' });
+    if (existingStaff) {
+      return res.json({ message: 'Verification staff already exists', staff: existingStaff });
+    }
+    
+    const verificationStaff = new Staff({
+      employeeId: 'VER001',
+      name: 'Verification Staff',
+      email: 'verification@abviiitm.ac.in',
+      passwordHash: 'Verification@123',
+      role: 'verification_staff',
+      department: 'Accounts'
+    });
+    
+    await verificationStaff.save();
+    res.json({ message: 'Default verification staff created', staff: verificationStaff });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

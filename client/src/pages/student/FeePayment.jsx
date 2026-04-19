@@ -23,6 +23,9 @@ export default function FeePayment() {
   const [payment, setPayment] = useState(null);
   const [loading, setLoading] = useState(true);
   const [paymentStatus, setPaymentStatus] = useState('pending');
+  const [submitting, setSubmitting] = useState(false);
+  const [file, setFile] = useState(null);
+  const [transactions, setTransactions] = useState([{ amount: '', date: '', utrNo: '', bankName: '', depositorName: '', debitAccountNo: '' }]);
   
   // Direct payment URL
   const PAYMENT_URL = 'https://octopod.co.in/student/admission/08d02b1d9ee5fa9d0be8bb55f8c5dd3c';

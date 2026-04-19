@@ -18,9 +18,14 @@ export default function VerificationDashboard() {
         api.get('/verification/all'),
         api.get('/verification/stats')
       ]);
-      setPayments(payRes.data);
-      setStats(statRes.data);
-    } catch (err) { console.error(err); }
+      console.log('Payments loaded:', payRes.data);
+      console.log('Stats loaded:', statRes.data);
+      setPayments(payRes.data || []);
+      setStats(statRes.data || {});
+    } catch (err) { 
+      console.error('Error loading verification data:', err);
+      toast.error('Failed to load payment data');
+    }
     finally { setLoading(false); }
   };
 
