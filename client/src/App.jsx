@@ -19,7 +19,6 @@ import StudentDashboard from './pages/student/StudentDashboard';
 import StudentProfile from './pages/student/StudentProfile';
 import SubjectSelection from './pages/student/SubjectSelection';
 import FeePayment from './pages/student/FeePayment';
-import FeeReceipts from './pages/student/FeeReceipts';
 import Receipts from './pages/student/Receipts';
 
 // Verification Pages
@@ -57,7 +56,6 @@ function AppRoutes() {
         <Route path="/student/profile" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><StudentProfile /></StudentLayout></ProtectedRoute>} />
         <Route path="/student/subjects" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><SubjectSelection /></StudentLayout></ProtectedRoute>} />
         <Route path="/student/payment" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><FeePayment /></StudentLayout></ProtectedRoute>} />
-        <Route path="/student/fee-receipts" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><FeeReceipts /></StudentLayout></ProtectedRoute>} />
         <Route path="/student/receipts" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><Receipts /></StudentLayout></ProtectedRoute>} />
 
         {/* Verification Staff */}

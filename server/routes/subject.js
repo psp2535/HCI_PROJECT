@@ -9,6 +9,16 @@ const router = express.Router();
 
 // Seed subjects from Subjects.pdf data (called once by admin)
 const SUBJECTS_DATA = [
+  // 2025 Batch - Semester I
+  { code: 'MA101', name: 'Mathematics I', ltp: '3-1-0', credits: 4, type: 'core', programs: ['BCS', 'IMT', 'BEE', 'IMG', 'BMS'], semester: 1, batch: 2025 },
+  { code: 'PH101', name: 'Physics I', ltp: '3-0-2', credits: 4, type: 'core', programs: ['BCS', 'IMT', 'BEE', 'IMG', 'BMS'], semester: 1, batch: 2025 },
+  { code: 'CH101', name: 'Chemistry I', ltp: '3-0-2', credits: 4, type: 'core', programs: ['BCS', 'IMT', 'BEE', 'IMG', 'BMS'], semester: 1, batch: 2025 },
+  { code: 'CS101', name: 'Programming Fundamentals', ltp: '3-1-0', credits: 4, type: 'core', programs: ['BCS', 'IMT', 'BEE', 'IMG', 'BMS'], semester: 1, batch: 2025 },
+  { code: 'EE101', name: 'Basic Electrical Engineering', ltp: '3-0-2', credits: 4, type: 'core', programs: ['BCS', 'IMT', 'BEE', 'IMG', 'BMS'], semester: 1, batch: 2025 },
+  { code: 'ME101', name: 'Basic Mechanical Engineering', ltp: '3-0-2', credits: 4, type: 'core', programs: ['BCS', 'IMT', 'BEE', 'IMG', 'BMS'], semester: 1, batch: 2025 },
+  { code: 'HS101', name: 'Communication Skills', ltp: '2-0-2', credits: 3, type: 'core', programs: ['BCS', 'IMT', 'BEE', 'IMG', 'BMS'], semester: 1, batch: 2025 },
+  { code: 'ES101', name: 'Engineering Workshop', ltp: '0-0-3', credits: 2, type: 'core', programs: ['BCS', 'IMT', 'BEE', 'IMG', 'BMS'], semester: 1, batch: 2025 },
+
   // 2025 Batch - Semester II
   { code: 'EE103', name: 'Digital Electronics', ltp: '3-0-2', credits: 4, type: 'core', programs: ['BCS', 'IMT', 'BEE', 'IMG', 'BMS'], semester: 2, batch: 2025 },
   { code: 'ES103', name: 'Probability and Statistics', ltp: '3-1-0', credits: 4, type: 'core', programs: ['BCS', 'IMT', 'BEE', 'IMG', 'BMS'], semester: 2, batch: 2025 },

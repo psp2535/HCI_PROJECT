@@ -35,6 +35,18 @@ router.get('/all', protect, authorize('verification_staff', 'admin'), async (req
       .sort({ submittedAt: -1 });
     
     console.log('Found payments:', payments.length);
+    
+    // Log payment details for debugging
+    payments.forEach((payment, index) => {
+      console.log(`Payment ${index + 1}:`, {
+        id: payment._id,
+        studentName: payment.studentId?.name,
+        rollNo: payment.rollNo || payment.studentId?.rollNo,
+        status: payment.status,
+        assignedTo: payment.assignedTo
+      });
+    });
+    
     res.json(payments);
   } catch (err) {
     console.error('Error loading payments:', err);

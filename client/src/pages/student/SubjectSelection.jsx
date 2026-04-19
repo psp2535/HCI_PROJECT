@@ -24,8 +24,8 @@ export default function SubjectSelection() {
         ]);
         setSubjects(subRes.data.allSubjects || []);
         setRegistration(regRes.data);
-        if (regRes.data?.selectedSubjects) setSelected(regRes.data.selectedSubjects.map(s => s._id || s));
-        if (regRes.data?.backlogSubjects) setBacklogs(regRes.data.backlogSubjects.map(s => s._id || s));
+        if (regRes.data?.selectedSubjects) setSelected(regRes.data.selectedSubjects.map(s => s._id || s.id || s));
+        if (regRes.data?.backlogSubjects) setBacklogs(regRes.data.backlogSubjects.map(s => s._id || s.id || s));
       } catch (err) {
         console.error(err);
       } finally {
@@ -47,12 +47,33 @@ export default function SubjectSelection() {
     // Get all subjects (core + selected electives)
     const allSelectedSubjects = [...new Set([...coreSubjects.map(s => s._id), ...selected])];
     
-    if (totalCredits > 32) { toast.error('Total credits exceed 32!'); return; }
+    if (totalCredits > 32) { 
+      toast.error(`Total credits (${totalCredits}) exceed maximum limit of 32!`); 
+      return; 
+    }
+    
+    if (allSelectedSubjects.length === 0) {
+      toast.error('Please select at least one subject!');
+      return;
+    }
+    
     setSaving(true);
     try {
-      await api.post('/subjects/select', { subjectIds: allSelectedSubjects, backlogSubjectIds: backlogs });
-      toast.success('Subjects saved successfully!');
+      const response = await api.post('/subjects/select', { 
+        subjectIds: allSelectedSubjects, 
+        backlogSubjectIds: backlogs 
+      });
+      
+      if (response.data.success) {
+        toast.success(response.data.message || 'Subjects saved successfully!');
+        // Refresh registration status
+        const regRes = await api.get('/student/registration-status');
+        setRegistration(regRes.data);
+      } else {
+        toast.error(response.data.message || 'Failed to save subjects');
+      }
     } catch (err) {
+      console.error('Subject selection error:', err);
       toast.error(err.response?.data?.message || 'Failed to save subjects');
     } finally {
       setSaving(false);

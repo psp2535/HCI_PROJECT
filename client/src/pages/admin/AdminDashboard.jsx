@@ -40,24 +40,30 @@ export default function AdminDashboard() {
 
   const load = async () => {
     try {
+      console.log('Loading admin dashboard data for section:', activeSection);
       setLoading(true);
       
       // Always load stats for dashboard
       const statRes = await api.get('/admin/stats');
+      console.log('Admin stats response:', statRes.data);
       setStats(statRes.data);
       
       // Load section-specific data
       if (activeSection === 'dashboard') {
         const regRes = await api.get('/admin/registrations');
+        console.log('Dashboard registrations response:', regRes.data);
         setRegistrations(regRes.data);
       } else if (activeSection === 'students') {
         const studentsRes = await api.get('/admin/students');
+        console.log('Students response:', studentsRes.data);
         setStudents(studentsRes.data);
       } else if (activeSection === 'staff') {
         const staffRes = await api.get('/admin/staff');
+        console.log('Staff response:', staffRes.data);
         setStaff(staffRes.data);
       } else if (activeSection === 'registrations') {
         const regRes = await api.get('/admin/registrations');
+        console.log('Registrations response:', regRes.data);
         setRegistrations(regRes.data);
       } else if (activeSection === 'analytics') {
         console.log('Loading analytics data...');
@@ -78,8 +84,9 @@ export default function AdminDashboard() {
         }, 100);
       }
       
-    } catch(err) { console.error(err); }
-    finally { setLoading(false); }
+    } catch(err) { 
+      console.error('Admin dashboard load error:', err); 
+    } finally { setLoading(false); }
   };
 
   useEffect(() => { load(); }, [activeSection]);
@@ -103,6 +110,24 @@ export default function AdminDashboard() {
       await load();
     } catch (err) { toast.error('Failed'); }
     finally { setProcessing(''); }
+  };
+
+  const handleDeleteStudent = async (studentId) => {
+    if (!confirm('Are you sure you want to delete this student?')) return;
+    try {
+      await api.delete(`/admin/students/${studentId}`);
+      toast.success('Student deleted successfully!');
+      await load();
+    } catch (err) { toast.error('Failed to delete student'); }
+  };
+
+  const handleDeleteStaff = async (staffId) => {
+    if (!confirm('Are you sure you want to delete this staff member?')) return;
+    try {
+      await api.delete(`/admin/staff/${staffId}`);
+      toast.success('Staff member deleted successfully!');
+      await load();
+    } catch (err) { toast.error('Failed to delete staff member'); }
   };
 
   const handleSubjectPDFUpload = async () => {
@@ -178,7 +203,7 @@ export default function AdminDashboard() {
                     <td className="py-3 px-4 text-slate-400">{student.program}</td>
                     <td className="py-3 px-4 text-slate-400">{student.semester}</td>
                     <td className="py-3 px-4">
-                      <button className="text-red-400 hover:text-red-300 text-sm">Delete</button>
+                      <button onClick={() => handleDeleteStudent(student._id)} className="text-red-400 hover:text-red-300 text-sm">Delete</button>
                     </td>
                   </tr>
                 ))}
@@ -233,7 +258,7 @@ export default function AdminDashboard() {
                     <td className="py-3 px-4 text-slate-400 capitalize">{member.role}</td>
                     <td className="py-3 px-4 text-slate-400">{member.department}</td>
                     <td className="py-3 px-4">
-                      <button className="text-red-400 hover:text-red-300 text-sm">Delete</button>
+                      <button onClick={() => handleDeleteStaff(member._id)} className="text-red-400 hover:text-red-300 text-sm">Delete</button>
                     </td>
                   </tr>
                 ))}

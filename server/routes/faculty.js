@@ -16,16 +16,22 @@ const router = express.Router();
 // Get students pending faculty approval (after payment verified)
 router.get('/pending', protect, authorize('faculty'), async (req, res) => {
   try {
+    // Filter by faculty's assigned programs, or show all if no programs assigned
+    const programFilter = req.userDoc.assignedPrograms && req.userDoc.assignedPrograms.length > 0 
+      ? { program: { $in: req.userDoc.assignedPrograms } } 
+      : {};
+    
     const registrations = await Registration.find({
       verificationStatus: 'approved',
       facultyApprovalStatus: 'pending',
-      $or: [{ program: { $in: req.userDoc.assignedPrograms || [] } }, {}]
+      ...programFilter
     })
       .populate('studentId', 'name rollNo program semester email mobile')
       .populate('selectedSubjects backlogSubjects')
       .sort({ updatedAt: -1 });
     res.json(registrations);
   } catch (err) {
+    console.error('Faculty pending error:', err);
     res.status(500).json({ message: err.message });
   }
 });
@@ -110,6 +116,13 @@ router.get('/course-registrations', protect, authorize('faculty'), async (req, r
   try {
     const { subjectId, program, semester } = req.query;
     
+    console.log('Faculty course registrations request:', {
+      user: req.userDoc,
+      subjectId,
+      program,
+      semester
+    });
+    
     // Filter by faculty's assigned programs
     const programFilter = req.userDoc.assignedPrograms && req.userDoc.assignedPrograms.length > 0 
       ? { program: { $in: req.userDoc.assignedPrograms } } 
@@ -119,6 +132,8 @@ router.get('/course-registrations', protect, authorize('faculty'), async (req, r
     let query = { ...programFilter };
     if (program) query.program = program;
     if (semester) query.semester = parseInt(semester);
+    
+    console.log('Query for registrations:', query);
     
     // Get registrations with subject selections
     const registrations = await Registration.find({
@@ -131,6 +146,8 @@ router.get('/course-registrations', protect, authorize('faculty'), async (req, r
       .populate('selectedSubjects', 'subjectCode subjectName credits type ltp')
       .populate('backlogSubjects', 'subjectCode subjectName credits type ltp')
       .sort({ 'studentId.rollNo': 1 });
+    
+    console.log('Found registrations:', registrations.length);
     
     // If specific subject requested, filter registrations for that subject
     let filteredRegistrations = registrations;

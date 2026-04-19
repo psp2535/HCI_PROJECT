@@ -173,7 +173,7 @@ console.log('Filtered payments:', filtered);
                         <td className="py-3 px-4 text-white font-medium whitespace-nowrap">{p.studentId?.name}</td>
                         <td className="py-3 px-4 text-slate-400 font-mono text-xs">{p.rollNo || p.studentId?.rollNo}</td>
                         <td className="py-3 px-4 text-slate-400">{p.studentId?.program}</td>
-                        <td className="py-3 px-4 text-emerald-400 font-bold">¥{p.totalAmount?.toLocaleString('en-IN')}</td>
+                        <td className="py-3 px-4 text-emerald-400 font-bold">₹{p.totalAmount?.toLocaleString('en-IN')}</td>
                         <td className="py-3 px-4 text-slate-300 font-mono text-xs">{txn?.utrNo || 'N/A'}</td>
                         <td className="py-3 px-4 text-slate-400 text-xs">{txn?.bankName}</td>
                         <td className="py-3 px-4 text-slate-400 text-xs">{txn?.date ? new Date(txn.date).toLocaleDateString('en-IN') : '-'}</td>
@@ -255,7 +255,7 @@ console.log('Filtered payments:', filtered);
                         <td className="py-3 px-4 text-white font-medium whitespace-nowrap">{p.studentId?.name}</td>
                         <td className="py-3 px-4 text-slate-400 font-mono text-xs">{p.rollNo || p.studentId?.rollNo}</td>
                         <td className="py-3 px-4 text-slate-400">{p.studentId?.program}</td>
-                        <td className="py-3 px-4 text-emerald-400 font-bold">¥{p.totalAmount?.toLocaleString('en-IN')}</td>
+                        <td className="py-3 px-4 text-emerald-400 font-bold">₹{p.totalAmount?.toLocaleString('en-IN')}</td>
                         <td className="py-3 px-4 text-slate-300 font-mono text-xs">{txn?.utrNo || 'N/A'}</td>
                         <td className="py-3 px-4 text-slate-400 text-xs">{txn?.bankName}</td>
                         <td className="py-3 px-4 text-slate-400 text-xs">{txn?.date ? new Date(txn.date).toLocaleDateString('en-IN') : '-'}</td>

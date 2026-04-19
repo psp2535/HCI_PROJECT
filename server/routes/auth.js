@@ -50,20 +50,51 @@ router.post('/staff/login', async (req, res) => {
 // Register new student (admin only in production, open for demo)
 router.post('/student/register', async (req, res) => {
   try {
-    const { rollNo, name, email, password, program, batch, batchYear } = req.body;
+    const { rollNo, name, email, password, program, batch, batchYear, semester } = req.body;
     
-    const existingStudent = await Student.findOne({ rollNo });
-    if (existingStudent) return res.status(400).json({ message: 'Student already exists' });
+    // Validate required fields
+    if (!rollNo || !name || !email || !password || !program) {
+      return res.status(400).json({ message: 'Missing required fields: rollNo, name, email, password, program' });
+    }
     
-    const student = new Student({ rollNo, name, email, passwordHash: password, program, batch, batchYear });
+    // Check if student already exists
+    const existingStudent = await Student.findOne({ $or: [{ rollNo }, { email }] });
+    if (existingStudent) {
+      return res.status(400).json({ 
+        message: existingStudent.rollNo === rollNo ? 'Student with this roll number already exists' : 'Student with this email already exists' 
+      });
+    }
+    
+    // Create student with proper password handling
+    const student = new Student({ 
+      rollNo, 
+      name, 
+      email, 
+      passwordHash: password, // Will be hashed by pre-save hook
+      program, 
+      batch: batch || `${batchYear || new Date().getFullYear()}`,
+      batchYear: batchYear || new Date().getFullYear(),
+      semester: parseInt(semester) || 1,
+      currentSemester: parseInt(semester) || 1
+    });
+    
     await student.save();
     
     const token = generateToken(student._id, 'student');
     res.status(201).json({
       token,
-      user: { id: student._id, name: student.name, rollNo: student.rollNo, role: 'student', program: student.program }
+      user: { 
+        id: student._id, 
+        name: student.name, 
+        rollNo: student.rollNo, 
+        role: 'student', 
+        program: student.program,
+        semester: student.semester,
+        profileCompleted: student.profileCompleted
+      }
     });
   } catch (err) {
+    console.error('Student registration error:', err);
     res.status(500).json({ message: err.message });
   }
 });

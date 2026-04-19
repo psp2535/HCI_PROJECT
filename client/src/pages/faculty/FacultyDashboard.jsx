@@ -59,10 +59,13 @@ export default function FacultyDashboard() {
 
   const load = async () => {
     try {
+      console.log('Loading faculty dashboard data...');
       const [regRes, statRes] = await Promise.all([
         api.get('/faculty/students'),
         api.get('/faculty/stats')
       ]);
+      console.log('Faculty registrations response:', regRes.data);
+      console.log('Faculty stats response:', statRes.data);
       setRegistrations(regRes.data);
       setStats(statRes.data);
       
@@ -70,8 +73,9 @@ export default function FacultyDashboard() {
       if (activeTab === 'courses') {
         await loadCourseRegistrations();
       }
-    } catch (err) { console.error(err); }
-    finally { setLoading(false); }
+    } catch (err) { 
+      console.error('Faculty dashboard load error:', err); 
+    } finally { setLoading(false); }
   };
 
   useEffect(() => { load(); }, []);

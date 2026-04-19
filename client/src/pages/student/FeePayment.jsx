@@ -46,23 +46,103 @@ export default function FeePayment() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate transactions
+    const validTransactions = transactions.filter(t => t.amount && t.utrNo && t.date);
+    if (validTransactions.length === 0) {
+      toast.error('Please fill in at least one complete transaction with amount, UTR number, and date');
+      return;
+    }
+    
+    const totalAmount = validTransactions.reduce((s, t) => s + parseFloat(t.amount || 0), 0);
+    if (totalAmount !== grandTotal) {
+      toast.error(`Total amount (₹${totalAmount}) must equal the required fee (₹${grandTotal})`);
+      return;
+    }
+    
     setSubmitting(true);
     try {
       const formData = new FormData();
-      formData.append('transactions', JSON.stringify(transactions));
-      formData.append('totalAmount', transactions.reduce((s, t) => s + parseFloat(t.amount || 0), 0));
+      formData.append('transactions', JSON.stringify(validTransactions));
+      formData.append('totalAmount', totalAmount);
       formData.append('academicFee', academicTotal);
       formData.append('messFee', messTotal);
       if (file) formData.append('paymentProof', file);
 
-      await api.post('/payment/submit', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-      toast.success('Payment details submitted!');
-      const res = await api.get('/payment/my-payment');
-      setPayment(res.data);
+      const response = await api.post('/payment/submit', formData, { 
+        headers: { 'Content-Type': 'multipart/form-data' } 
+      });
+      
+      toast.success('Payment details submitted successfully!');
+      setPayment(response.data.payment);
+      
+      // Refresh registration status
+      setTimeout(async () => {
+        try {
+          const regRes = await api.get('/student/registration-status');
+          // This will trigger dashboard update if it's listening
+        } catch (err) {
+          console.error('Error refreshing registration status:', err);
+        }
+      }, 1000);
+      
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Submission failed');
+      console.error('Payment submission error:', err);
+      toast.error(err.response?.data?.message || 'Payment submission failed');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleStatusUpdate = async () => {
+    console.log('=== Payment Status Update Called ===');
+    
+    try {
+      // Create a payment record if it doesn't exist
+      if (!payment) {
+        console.log('Creating new payment record...');
+        const formData = new FormData();
+        formData.append('transactions', JSON.stringify([{
+          amount: grandTotal.toString(),
+          date: new Date().toISOString().split('T')[0],
+          utrNo: 'ONLINE_PAYMENT_' + Date.now(),
+          bankName: 'Online Payment Portal',
+          depositorName: 'Self',
+          debitAccountNo: 'N/A'
+        }]));
+        formData.append('totalAmount', grandTotal);
+        formData.append('academicFee', academicTotal);
+        formData.append('messFee', messTotal);
+
+        const createResponse = await api.post('/payment/submit', formData, { 
+          headers: { 'Content-Type': 'multipart/form-data' } 
+        });
+        console.log('Payment created:', createResponse.data);
+        
+        // Set the newly created payment
+        setPayment(createResponse.data.payment);
+        toast.success('Payment submitted successfully! Please wait for verification by accounts staff.');
+      } else {
+        // Payment already exists, just show message
+        toast.success('Payment record already exists. Status: ' + payment.status);
+      }
+      
+      // Refetch payment data to get the latest status
+      setTimeout(async () => {
+        try {
+          const updatedPayment = await api.get('/payment/my-payment');
+          console.log('Refetched payment data:', updatedPayment.data);
+          if (updatedPayment.data) {
+            setPayment(updatedPayment.data);
+          }
+        } catch (error) {
+          console.error('Error refetching payment:', error);
+        }
+      }, 1000);
+    } catch (error) {
+      console.error('Error submitting payment:', error);
+      console.error('Error details:', error.response?.data || error.message);
+      toast.error('Failed to submit payment');
     }
   };
 
@@ -200,10 +280,8 @@ export default function FeePayment() {
           </div>
 
           <button
-            onClick={() => {
-              setPaymentStatus('completed');
-              toast.success('Payment marked as completed! Please wait for verification.');
-            }}
+            onClick={() => handleStatusUpdate()}
+            disabled={submitting}
             className="btn-success flex items-center justify-center gap-2 px-6 py-3 w-full"
           >
             <CheckCircle size={18} />

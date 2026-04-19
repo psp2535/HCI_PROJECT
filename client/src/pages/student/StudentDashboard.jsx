@@ -36,7 +36,19 @@ export default function StudentDashboard() {
         const res = await api.get('/student/registration-status');
         setRegistration(res.data);
       } catch (err) {
-        console.error(err);
+        console.error('Dashboard initialization error:', err);
+        // If registration doesn't exist, set a default state
+        if (err.response?.status === 404) {
+          setRegistration({
+            overallStatus: 'draft',
+            personalInfoCompleted: false,
+            subjectsSelected: false,
+            paymentStatus: 'pending',
+            totalCredits: 0,
+            selectedSubjects: [],
+            backlogSubjects: []
+          });
+        }
       } finally {
         setLoading(false);
       }
@@ -86,7 +98,7 @@ export default function StudentDashboard() {
         <div className="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
             <h2 className="text-3xl font-bold text-white mb-2">Welcome, {user?.name?.split(' ')[0]}! 👋</h2>
-            <p className="text-slate-300 text-base">{user?.program} Programme · Semester {user?.semester} · Academic Year 2025-26</p>
+            <p className="text-slate-300 text-base">{user?.program} Programme · Semester {registration?.semester || user?.semester} · Academic Year 2025-26</p>
             <div className="mt-4">
               <span className={`inline-block text-sm px-4 py-2 rounded-full font-semibold ${statusInfo?.class}`}>
                 {statusInfo?.label}

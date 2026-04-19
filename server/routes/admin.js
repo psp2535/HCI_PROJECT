@@ -35,6 +35,8 @@ router.get('/stats', protect, authorize('admin'), async (req, res) => {
 // ── Analytics ───────────────────────────────────────────────
 router.get('/analytics', protect, authorize('admin'), async (req, res) => {
   try {
+    console.log('Loading analytics data...');
+    
     const [
       totalStudents,
       totalRegistrations,
@@ -68,7 +70,20 @@ router.get('/analytics', protect, authorize('admin'), async (req, res) => {
       ])
     ]);
 
-    res.json({
+    console.log('Analytics data loaded:', {
+      totalStudents,
+      totalRegistrations,
+      pendingPayments,
+      verifiedPayments,
+      rejectedPayments,
+      facultyPending,
+      finalApproved,
+      studentsByProgram: studentsByProgram?.length || 0,
+      paymentsByStatus: paymentsByStatus?.length || 0,
+      registrationsByStatus: registrationsByStatus?.length || 0
+    });
+
+    const response = {
       overview: {
         totalStudents,
         totalRegistrations,
@@ -80,11 +95,14 @@ router.get('/analytics', protect, authorize('admin'), async (req, res) => {
         finalApproved
       },
       charts: {
-        studentsByProgram,
-        paymentsByStatus,
-        registrationsByStatus
+        studentsByProgram: studentsByProgram || [],
+        paymentsByStatus: paymentsByStatus || [],
+        registrationsByStatus: registrationsByStatus || []
       }
-    });
+    };
+    
+    console.log('Sending analytics response:', response);
+    res.json(response);
   } catch (err) {
     console.error('Analytics error:', err);
     res.status(500).json({ message: err.message });
@@ -192,12 +210,31 @@ router.post('/promote-students', protect, authorize('admin'), async (req, res) =
 // ── Registrations overview ────────────────────────────────────
 router.get('/registrations', protect, authorize('admin'), async (req, res) => {
   try {
+    console.log('Loading admin registrations...');
+    
     const registrations = await Registration.find()
       .populate('studentId', 'name rollNo program semester email')
-      .populate('selectedSubjects', 'code name credits')
+      .populate('selectedSubjects', 'subjectCode subjectName credits type ltp')
+      .populate('backlogSubjects', 'subjectCode subjectName credits type ltp')
       .sort({ updatedAt: -1 });
+    
+    console.log(`Found ${registrations.length} registrations for admin`);
+    
+    // Log first registration details for debugging
+    if (registrations.length > 0) {
+      const firstReg = registrations[0];
+      console.log('First registration details:', {
+        studentName: firstReg.studentId?.name,
+        program: firstReg.studentId?.program,
+        semester: firstReg.studentId?.semester,
+        selectedSubjects: firstReg.selectedSubjects?.length || 0,
+        totalCredits: firstReg.totalCredits
+      });
+    }
+    
     res.json(registrations);
   } catch (err) {
+    console.error('Admin registrations error:', err);
     res.status(500).json({ message: err.message });
   }
 });
@@ -248,6 +285,35 @@ router.post('/seed-demo', async (req, res) => {
 
     // Seed subjects with updated schema
     const SUBJECTS_DATA = [
+      // Semester 1 subjects for all programs
+      { subjectCode: 'MA101', code: 'MA101', subjectName: 'Mathematics I', name: 'Mathematics I', ltp: '3-1-0', credits: 4, type: 'core', program: 'IMT', semester: 1, batch: 2025, academicYear: '2025-26' },
+      { subjectCode: 'PH101', code: 'PH101', subjectName: 'Physics I', name: 'Physics I', ltp: '3-0-2', credits: 4, type: 'core', program: 'IMT', semester: 1, batch: 2025, academicYear: '2025-26' },
+      { subjectCode: 'CH101', code: 'CH101', subjectName: 'Chemistry I', name: 'Chemistry I', ltp: '3-0-2', credits: 4, type: 'core', program: 'IMT', semester: 1, batch: 2025, academicYear: '2025-26' },
+      { subjectCode: 'CS101', code: 'CS101', subjectName: 'Programming Fundamentals', name: 'Programming Fundamentals', ltp: '3-1-0', credits: 4, type: 'core', program: 'IMT', semester: 1, batch: 2025, academicYear: '2025-26' },
+      { subjectCode: 'EE101', code: 'EE101', subjectName: 'Basic Electrical Engineering', name: 'Basic Electrical Engineering', ltp: '3-0-2', credits: 4, type: 'core', program: 'IMT', semester: 1, batch: 2025, academicYear: '2025-26' },
+      { subjectCode: 'ME101', code: 'ME101', subjectName: 'Basic Mechanical Engineering', name: 'Basic Mechanical Engineering', ltp: '3-0-2', credits: 4, type: 'core', program: 'IMT', semester: 1, batch: 2025, academicYear: '2025-26' },
+      { subjectCode: 'HS101', code: 'HS101', subjectName: 'Communication Skills', name: 'Communication Skills', ltp: '2-0-2', credits: 3, type: 'core', program: 'IMT', semester: 1, batch: 2025, academicYear: '2025-26' },
+      { subjectCode: 'ES101', code: 'ES101', subjectName: 'Engineering Workshop', name: 'Engineering Workshop', ltp: '0-0-3', credits: 2, type: 'core', program: 'IMT', semester: 1, batch: 2025, academicYear: '2025-26' },
+      
+      { subjectCode: 'MA101', code: 'MA101', subjectName: 'Mathematics I', name: 'Mathematics I', ltp: '3-1-0', credits: 4, type: 'core', program: 'BCS', semester: 1, batch: 2025, academicYear: '2025-26' },
+      { subjectCode: 'PH101', code: 'PH101', subjectName: 'Physics I', name: 'Physics I', ltp: '3-0-2', credits: 4, type: 'core', program: 'BCS', semester: 1, batch: 2025, academicYear: '2025-26' },
+      { subjectCode: 'CH101', code: 'CH101', subjectName: 'Chemistry I', name: 'Chemistry I', ltp: '3-0-2', credits: 4, type: 'core', program: 'BCS', semester: 1, batch: 2025, academicYear: '2025-26' },
+      { subjectCode: 'CS101', code: 'CS101', subjectName: 'Programming Fundamentals', name: 'Programming Fundamentals', ltp: '3-1-0', credits: 4, type: 'core', program: 'BCS', semester: 1, batch: 2025, academicYear: '2025-26' },
+      { subjectCode: 'EE101', code: 'EE101', subjectName: 'Basic Electrical Engineering', name: 'Basic Electrical Engineering', ltp: '3-0-2', credits: 4, type: 'core', program: 'BCS', semester: 1, batch: 2025, academicYear: '2025-26' },
+      { subjectCode: 'ME101', code: 'ME101', subjectName: 'Basic Mechanical Engineering', name: 'Basic Mechanical Engineering', ltp: '3-0-2', credits: 4, type: 'core', program: 'BCS', semester: 1, batch: 2025, academicYear: '2025-26' },
+      { subjectCode: 'HS101', code: 'HS101', subjectName: 'Communication Skills', name: 'Communication Skills', ltp: '2-0-2', credits: 3, type: 'core', program: 'BCS', semester: 1, batch: 2025, academicYear: '2025-26' },
+      { subjectCode: 'ES101', code: 'ES101', subjectName: 'Engineering Workshop', name: 'Engineering Workshop', ltp: '0-0-3', credits: 2, type: 'core', program: 'BCS', semester: 1, batch: 2025, academicYear: '2025-26' },
+      
+      { subjectCode: 'MA101', code: 'MA101', subjectName: 'Mathematics I', name: 'Mathematics I', ltp: '3-1-0', credits: 4, type: 'core', program: 'BEE', semester: 1, batch: 2025, academicYear: '2025-26' },
+      { subjectCode: 'PH101', code: 'PH101', subjectName: 'Physics I', name: 'Physics I', ltp: '3-0-2', credits: 4, type: 'core', program: 'BEE', semester: 1, batch: 2025, academicYear: '2025-26' },
+      { subjectCode: 'CH101', code: 'CH101', subjectName: 'Chemistry I', name: 'Chemistry I', ltp: '3-0-2', credits: 4, type: 'core', program: 'BEE', semester: 1, batch: 2025, academicYear: '2025-26' },
+      { subjectCode: 'CS101', code: 'CS101', subjectName: 'Programming Fundamentals', name: 'Programming Fundamentals', ltp: '3-1-0', credits: 4, type: 'core', program: 'BEE', semester: 1, batch: 2025, academicYear: '2025-26' },
+      { subjectCode: 'EE101', code: 'EE101', subjectName: 'Basic Electrical Engineering', name: 'Basic Electrical Engineering', ltp: '3-0-2', credits: 4, type: 'core', program: 'BEE', semester: 1, batch: 2025, academicYear: '2025-26' },
+      { subjectCode: 'ME101', code: 'ME101', subjectName: 'Basic Mechanical Engineering', name: 'Basic Mechanical Engineering', ltp: '3-0-2', credits: 4, type: 'core', program: 'BEE', semester: 1, batch: 2025, academicYear: '2025-26' },
+      { subjectCode: 'HS101', code: 'HS101', subjectName: 'Communication Skills', name: 'Communication Skills', ltp: '2-0-2', credits: 3, type: 'core', program: 'BEE', semester: 1, batch: 2025, academicYear: '2025-26' },
+      { subjectCode: 'ES101', code: 'ES101', subjectName: 'Engineering Workshop', name: 'Engineering Workshop', ltp: '0-0-3', credits: 2, type: 'core', program: 'BEE', semester: 1, batch: 2025, academicYear: '2025-26' },
+
+      // Semester 2 subjects (existing)
       { subjectCode: 'EE103', subjectName: 'Digital Electronics', ltp: '3-0-2', credits: 4, type: 'core', program: 'IMT', semester: 2, batch: 2025, academicYear: '2025-26' },
       { subjectCode: 'ES103', subjectName: 'Probability and Statistics', ltp: '3-1-0', credits: 4, type: 'core', program: 'IMT', semester: 2, batch: 2025, academicYear: '2025-26' },
       { subjectCode: 'CS102', subjectName: 'Data Structures', ltp: '3-1-0', credits: 4, type: 'core', program: 'IMT', semester: 2, batch: 2025, academicYear: '2025-26' },
@@ -271,6 +337,15 @@ router.post('/seed-demo', async (req, res) => {
 
     const subjectCount = await Subject.countDocuments();
     if (subjectCount === 0) await Subject.insertMany(SUBJECTS_DATA);
+    else {
+      // Check if Semester 1 subjects exist, if not, add them
+      const semester1Subjects = await Subject.find({ semester: 1 });
+      if (semester1Subjects.length === 0) {
+        const semester1Data = SUBJECTS_DATA.filter(s => s.semester === 1);
+        await Subject.insertMany(semester1Data);
+        console.log('Added Semester 1 subjects');
+      }
+    }
 
     res.json({ message: 'Demo data seeded successfully', credentials: {
       students: [
