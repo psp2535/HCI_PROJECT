@@ -22,13 +22,22 @@ router.get('/pending', protect, authorize('verification_staff'), async (req, res
 // Get all payments (all statuses) - filtered by assigned staff for verification_staff, all for admin
 router.get('/all', protect, authorize('verification_staff', 'admin'), async (req, res) => {
   try {
+    console.log('User requesting payments:', req.user);
+    console.log('User ID:', req.user.id);
+    console.log('User role:', req.user.role);
+    
     const filter = req.user.role === 'admin' ? {} : { assignedTo: req.user.id };
+    console.log('Payment filter:', filter);
+    
     const payments = await Payment.find(filter)
       .populate({ path: 'studentId', select: 'name rollNo program semester email' })
       .populate({ path: 'registrationId', select: 'academicYear semester overallStatus' })
       .sort({ submittedAt: -1 });
+    
+    console.log('Found payments:', payments.length);
     res.json(payments);
   } catch (err) {
+    console.error('Error loading payments:', err);
     res.status(500).json({ message: err.message });
   }
 });
@@ -36,12 +45,20 @@ router.get('/all', protect, authorize('verification_staff', 'admin'), async (req
 // Verify or reject a payment
 router.post('/verify/:paymentId', protect, authorize('verification_staff'), async (req, res) => {
   try {
+    console.log('Verifying payment:', req.params.paymentId);
+    console.log('User ID:', req.user.id);
+    console.log('User role:', req.user.role);
+    
     const { action, remarks } = req.body; // action: 'approve' | 'reject'
     const payment = await Payment.findById(req.params.paymentId);
     if (!payment) return res.status(404).json({ message: 'Payment not found' });
 
-    // Verify this payment is assigned to the current staff
+    console.log('Payment found:', payment);
+    console.log('Payment assigned to:', payment.assignedTo);
+
+    // Verify this payment is assigned to current staff
     if (payment.assignedTo && payment.assignedTo.toString() !== req.user.id) {
+      console.log('Authorization failed - payment assigned to:', payment.assignedTo, 'user ID:', req.user.id);
       return res.status(403).json({ message: 'You are not authorized to verify this payment' });
     }
 

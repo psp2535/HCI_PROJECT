@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import api from '../../utils/api';
 import toast from 'react-hot-toast';
 import { CheckCircle, XCircle, BookOpen, Users, Loader, UserCheck, List, Filter, Download } from 'lucide-react';
 
 export default function FacultyDashboard() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [registrations, setRegistrations] = useState([]);
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
@@ -16,6 +19,26 @@ export default function FacultyDashboard() {
   const [selectedSubject, setSelectedSubject] = useState('');
   const [selectedProgram, setSelectedProgram] = useState('');
   const [selectedSemester, setSelectedSemester] = useState('');
+
+  // Set active tab based on current route
+  useEffect(() => {
+    const path = location.pathname;
+    console.log('Current path:', path);
+    console.log('Setting active tab based on path...');
+    
+    if (path.includes('/students')) {
+      console.log('Setting tab to approvals for /students route');
+      setActiveTab('approvals');
+    } else if (path.includes('/dashboard')) {
+      console.log('Setting tab to approvals for /dashboard route');
+      setActiveTab('approvals');
+    } else if (path.includes('/courses')) {
+      console.log('Setting tab to courses for /courses route');
+      setActiveTab('courses');
+    }
+    
+    console.log('Active tab set to:', activeTab);
+  }, [location.pathname]);
 
   const loadCourseRegistrations = async () => {
     try {
@@ -106,7 +129,12 @@ export default function FacultyDashboard() {
       {/* Tab Navigation */}
       <div className="flex space-x-1 bg-slate-800/50 p-1 rounded-xl">
         <button
-          onClick={() => setActiveTab('approvals')}
+          onClick={() => {
+            console.log('Student Registrations tab clicked');
+            setActiveTab('approvals');
+            console.log('Navigating to /faculty/students');
+            navigate('/faculty/students');
+          }}
           className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-all ${
             activeTab === 'approvals' 
               ? 'bg-purple-600 text-white shadow-lg' 
@@ -114,10 +142,15 @@ export default function FacultyDashboard() {
           }`}
         >
           <Users size={18} />
-          Student Approvals
+          Student Registrations
         </button>
         <button
-          onClick={() => setActiveTab('courses')}
+          onClick={() => {
+            console.log('Course Registrations tab clicked');
+            setActiveTab('courses');
+            console.log('Navigating to /faculty/courses');
+            navigate('/faculty/courses');
+          }}
           className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-all ${
             activeTab === 'courses' 
               ? 'bg-purple-600 text-white shadow-lg' 
@@ -131,6 +164,9 @@ export default function FacultyDashboard() {
 
       {/* Course Registrations Tab */}
       {activeTab === 'courses' && (
+        (() => {
+          console.log('Rendering Course Registrations tab');
+          return (
         <div className="space-y-6">
           {/* Filters */}
           <div className="glass-card p-5">
@@ -253,10 +289,15 @@ export default function FacultyDashboard() {
             </div>
           ))}
         </div>
+      );
+        })()
       )}
 
       {/* Student Approvals Tab */}
       {activeTab === 'approvals' && (
+        (() => {
+          console.log('Rendering Student Approvals tab');
+          return (
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[
@@ -318,6 +359,8 @@ export default function FacultyDashboard() {
         ))}
       </div>
         </div>
+      );
+        })()
       )}
     </div>
   );

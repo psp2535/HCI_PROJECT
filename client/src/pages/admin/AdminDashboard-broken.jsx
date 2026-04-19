@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import api from '../../utils/api';
 import toast from 'react-hot-toast';
-import { CheckCircle, XCircle, Users, CreditCard, BarChart2, Receipt, Loader, Database, Upload, FileText, UserPlus, ClipboardList, ChevronRight } from 'lucide-react';
+import { CheckCircle, XCircle, Users, CreditCard, BarChart2, Receipt, Loader, Database, Upload, FileText } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
@@ -14,7 +14,7 @@ export default function AdminDashboard() {
   const [registrations, setRegistrations] = useState([]);
   const [students, setStudents] = useState([]);
   const [staff, setStaff] = useState([]);
-  const [analytics, setAnalytics] = useState({ charts: {} });
+  const [analytics, setAnalytics] = useState({});
   const [loading, setLoading] = useState(true);
   const [seeding, setSeeding] = useState(false);
   const [processing, setProcessing] = useState('');
@@ -60,22 +60,8 @@ export default function AdminDashboard() {
         const regRes = await api.get('/admin/registrations');
         setRegistrations(regRes.data);
       } else if (activeSection === 'analytics') {
-        console.log('Loading analytics data...');
         const analyticsRes = await api.get('/admin/analytics');
-        console.log('Analytics response:', analyticsRes.data);
-        console.log('Analytics response charts:', analyticsRes.data.charts);
-        console.log('Students by program data:', analyticsRes.data.charts?.studentsByProgram);
-        console.log('Payments by status data:', analyticsRes.data.charts?.paymentsByStatus);
-        console.log('Registrations by status data:', analyticsRes.data.charts?.registrationsByStatus);
-        
         setAnalytics(analyticsRes.data);
-        console.log('Analytics state set');
-        
-        // Force a re-render by updating state again
-        setTimeout(() => {
-          console.log('Forcing analytics state update...');
-          setAnalytics(prev => ({...prev}));
-        }, 100);
       }
       
     } catch(err) { console.error(err); }
@@ -132,6 +118,14 @@ export default function AdminDashboard() {
       setUploadingPDF(false);
     }
   };
+
+  const pieData = [
+    { name: 'Draft', value: registrations.filter(r => r.overallStatus === 'draft').length },
+    { name: 'Payment Done', value: registrations.filter(r => r.overallStatus === 'payment_done').length },
+    { name: 'Verified', value: registrations.filter(r => r.overallStatus === 'payment_verified').length },
+    { name: 'Faculty OK', value: registrations.filter(r => r.overallStatus === 'faculty_approved').length },
+    { name: 'Final Done', value: registrations.filter(r => r.overallStatus === 'final_approved').length },
+  ].filter(d => d.value > 0);
 
   if (loading) return <div className="flex justify-center h-64 items-center"><div className="spinner" /></div>;
 
@@ -311,17 +305,6 @@ export default function AdminDashboard() {
   }
 
   if (activeSection === 'analytics') {
-    // Add debugging
-    console.log('Analytics section active');
-    console.log('Analytics state:', analytics);
-    console.log('Analytics state keys:', Object.keys(analytics));
-    console.log('Analytics charts:', analytics.charts);
-    console.log('Analytics charts keys:', analytics.charts ? Object.keys(analytics.charts) : 'NO CHARTS');
-    console.log('Students by program data:', analytics.charts?.studentsByProgram);
-    console.log('Students by program length:', analytics.charts?.studentsByProgram?.length);
-    console.log('Payments by status data:', analytics.charts?.paymentsByStatus);
-    console.log('Payments by status length:', analytics.charts?.paymentsByStatus?.length);
-    
     return (
       <div className="space-y-6 animate-fade-in-up">
         <div className="glass-card p-6">
@@ -340,20 +323,7 @@ export default function AdminDashboard() {
             </button>
           </div>
 
-          {/* Show data debug info */}
-          <div className="mb-4 p-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)' }}>
-            <p className="text-slate-400 text-xs">Debug Info:</p>
-            <p className="text-white text-xs">Analytics loaded: {Object.keys(analytics).length > 0 ? 'YES' : 'NO'}</p>
-            <p className="text-white text-xs">Analytics keys: {Object.keys(analytics).join(', ')}</p>
-            <p className="text-white text-xs">Charts available: {analytics.charts ? Object.keys(analytics.charts).length : 0}</p>
-            <p className="text-white text-xs">Charts keys: {analytics.charts ? Object.keys(analytics.charts).join(', ') : 'NONE'}</p>
-            <p className="text-white text-xs">Students by program: {analytics.charts?.studentsByProgram?.length || 0} items</p>
-            <p className="text-white text-xs">Payments by status: {analytics.charts?.paymentsByStatus?.length || 0} items</p>
-            <p className="text-white text-xs">Registrations by status: {analytics.charts?.registrationsByStatus?.length || 0} items</p>
-            <p className="text-white text-xs">Should render charts: {analytics.charts?.studentsByProgram?.length > 0 && analytics.charts?.paymentsByStatus?.length > 0 ? 'YES' : 'NO'}</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="glass-card p-5">
               <h3 className="text-white font-semibold mb-4">Students by Program</h3>
               {analytics.charts?.studentsByProgram?.length > 0 ? (
@@ -376,46 +346,21 @@ export default function AdminDashboard() {
                 <ResponsiveContainer width="100%" height={200}>
                   <BarChart data={analytics.charts.paymentsByStatus.map(item => ({ name: item._id, value: item.count }))}>
                     <XAxis dataKey="name" stroke="#94a3b8" />
-                    <YAxis stroke="#94a3b8" />
-                    <Tooltip contentStyle={{ background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#e2e8f0' }} />
-                    <Bar dataKey="value" fill={COLORS[1]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="h-48 flex items-center justify-center text-slate-500">No data available</div>
-              )}
-            </div>
-
-            <div className="glass-card p-5">
-              <h3 className="text-white font-semibold mb-4">Registrations by Status</h3>
-              {analytics.charts?.registrationsByStatus?.length > 0 ? (
-                <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={analytics.charts.registrationsByStatus.map(item => ({ name: item._id, value: item.count }))}>
-                    <XAxis dataKey="name" stroke="#94a3b8" />
-                    <YAxis stroke="#94a3b8" />
-                    <Tooltip contentStyle={{ background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#e2e8f0' }} />
-                    <Bar dataKey="value" fill={COLORS[2]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="h-48 flex items-center justify-center text-slate-500">No data available</div>
-              )}
-            </div>
-          </div>
+                <YAxis stroke="#94a3b8" />
+                <Tooltip contentStyle={{ background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#e2e8f0' }} />
+                <Bar dataKey="value" fill={COLORS[1]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-48 flex items-center justify-center text-slate-500">No data available</div>
+          )}
         </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   // Default Dashboard View
-  const pieData = [
-    { name: 'Draft', value: registrations.filter(r => r.overallStatus === 'draft').length },
-    { name: 'Payment Done', value: registrations.filter(r => r.overallStatus === 'payment_done').length },
-    { name: 'Verified', value: registrations.filter(r => r.overallStatus === 'payment_verified').length },
-    { name: 'Faculty OK', value: registrations.filter(r => r.overallStatus === 'faculty_approved').length },
-    { name: 'Final Done', value: registrations.filter(r => r.overallStatus === 'final_approved').length },
-  ].filter(d => d.value > 0);
-
   return (
     <div className="space-y-6 animate-fade-in-up">
       {/* Stats Grid */}
@@ -533,8 +478,8 @@ export default function AdminDashboard() {
                     <td className="py-3 px-3 text-slate-400">{reg.studentId?.program}</td>
                     <td className="py-3 px-3 text-slate-400">{reg.studentId?.semester}</td>
                     <td className="py-3 px-3 text-blue-300 font-bold">{reg.totalCredits}</td>
-                    <td className="py-3 px-3"><span className="text-xs text-emerald-400">Verified</span></td>
-                    <td className="py-3 px-3"><span className="text-xs text-purple-400">Approved</span></td>
+                    <td className="py-3 px-3"><span className="text-xs text-emerald-400">✓ Verified</span></td>
+                    <td className="py-3 px-3"><span className="text-xs text-purple-400">✓ Approved</span></td>
                     <td className="py-3 px-3">
                       <div className="flex gap-2">
                         <button onClick={() => handleFinalApprove(reg._id, 'approve')} disabled={processing === reg._id}

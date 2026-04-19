@@ -32,6 +32,65 @@ router.get('/stats', protect, authorize('admin'), async (req, res) => {
   }
 });
 
+// ── Analytics ───────────────────────────────────────────────
+router.get('/analytics', protect, authorize('admin'), async (req, res) => {
+  try {
+    const [
+      totalStudents,
+      totalRegistrations,
+      pendingPayments,
+      verifiedPayments,
+      rejectedPayments,
+      facultyPending,
+      finalApproved,
+      totalReceipts,
+      studentsByProgram,
+      paymentsByStatus,
+      registrationsByStatus
+    ] = await Promise.all([
+      Student.countDocuments(),
+      Registration.countDocuments(),
+      Payment.countDocuments({ status: 'submitted' }),
+      Payment.countDocuments({ status: 'verified' }),
+      Payment.countDocuments({ status: 'rejected' }),
+      Registration.countDocuments({ verificationStatus: 'approved', facultyApprovalStatus: 'pending' }),
+      Registration.countDocuments({ overallStatus: 'final_approved' }),
+      Receipt.countDocuments(),
+      Student.aggregate([
+        { $group: { _id: '$program', count: { $sum: 1 } } },
+        { $sort: { count: -1 } }
+      ]),
+      Payment.aggregate([
+        { $group: { _id: '$status', count: { $sum: 1 } } }
+      ]),
+      Registration.aggregate([
+        { $group: { _id: '$overallStatus', count: { $sum: 1 } } }
+      ])
+    ]);
+
+    res.json({
+      overview: {
+        totalStudents,
+        totalRegistrations,
+        totalReceipts,
+        pendingPayments,
+        verifiedPayments,
+        rejectedPayments,
+        facultyPending,
+        finalApproved
+      },
+      charts: {
+        studentsByProgram,
+        paymentsByStatus,
+        registrationsByStatus
+      }
+    });
+  } catch (err) {
+    console.error('Analytics error:', err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // ── Students management ───────────────────────────────────────
 router.get('/students', protect, authorize('admin'), async (req, res) => {
   try {
@@ -75,6 +134,57 @@ router.post('/staff', protect, authorize('admin'), async (req, res) => {
     const staff = await Staff.create({ ...req.body, passwordHash: req.body.password });
     res.status(201).json(staff);
   } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Promote students to next semester
+router.post('/promote-students', protect, authorize('admin'), async (req, res) => {
+  try {
+    const { currentSemester, targetSemester, academicYear } = req.body;
+    
+    if (!currentSemester || !targetSemester || !academicYear) {
+      return res.status(400).json({ 
+        message: 'Current semester, target semester, and academic year are required' 
+      });
+    }
+
+    // Find students in current semester
+    const students = await Student.find({ semester: currentSemester });
+    
+    if (students.length === 0) {
+      return res.status(404).json({ message: 'No students found in current semester' });
+    }
+
+    // Update students to target semester
+    const updateResult = await Student.updateMany(
+      { semester: currentSemester },
+      { 
+        semester: targetSemester,
+        updatedAt: new Date()
+      }
+    );
+
+    // Update registrations if needed
+    await Registration.updateMany(
+      { semester: currentSemester },
+      { 
+        semester: targetSemester,
+        academicYear: academicYear,
+        updatedAt: new Date()
+      }
+    );
+
+    res.json({
+      message: `Successfully promoted ${updateResult.modifiedCount} students from semester ${currentSemester} to ${targetSemester}`,
+      promotedCount: updateResult.modifiedCount,
+      currentSemester,
+      targetSemester,
+      academicYear
+    });
+
+  } catch (err) {
+    console.error('Promotion error:', err);
     res.status(500).json({ message: err.message });
   }
 });

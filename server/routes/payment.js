@@ -53,13 +53,19 @@ router.post('/submit', protect, authorize('student'), upload.single('paymentProo
     
     paymentData.assignedTo = availableStaff._id;
     console.log('Payment assigned to staff:', availableStaff._id);
+    console.log('Payment data before save:', paymentData);
     
     let payment;
     if (existingPayment) {
       payment = await Payment.findByIdAndUpdate(existingPayment._id, paymentData, { new: true });
+      console.log('Updated existing payment:', payment);
     } else {
       payment = await Payment.create(paymentData);
+      console.log('Created new payment:', payment);
     }
+    
+    console.log('Final payment object:', payment);
+    console.log('Payment assignedTo field:', payment.assignedTo);
     
     // Update registration
     await Registration.findByIdAndUpdate(reg._id, {

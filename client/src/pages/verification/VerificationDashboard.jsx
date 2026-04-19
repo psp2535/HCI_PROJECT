@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import api from '../../utils/api';
 import toast from 'react-hot-toast';
-import { CheckCircle, XCircle, Eye, MessageSquare, Loader, Filter } from 'lucide-react';
+import { CheckCircle, XCircle, Eye, MessageSquare, Loader, Filter, ChevronRight } from 'lucide-react';
 
 export default function VerificationDashboard() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [payments, setPayments] = useState([]);
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
@@ -11,25 +14,52 @@ export default function VerificationDashboard() {
   const [remarks, setRemarks] = useState({});
   const [processing, setProcessing] = useState('');
   const [filter, setFilter] = useState('all');
+  const [activeSection, setActiveSection] = useState('dashboard');
+
+  // Set active section based on current route
+  useEffect(() => {
+    const path = location.pathname;
+    if (path.includes('/dashboard')) {
+      setActiveSection('dashboard');
+    } else if (path.includes('/pending')) {
+      setActiveSection('pending');
+    } else if (path.includes('/all')) {
+      setActiveSection('all');
+    }
+  }, [location.pathname]);
 
   const load = async () => {
     try {
-      const [payRes, statRes] = await Promise.all([
-        api.get('/verification/all'),
-        api.get('/verification/stats')
-      ]);
-      console.log('Payments loaded:', payRes.data);
-      console.log('Stats loaded:', statRes.data);
-      setPayments(payRes.data || []);
-      setStats(statRes.data || {});
-    } catch (err) { 
+      setLoading(true);
+      
+      // Always load stats for dashboard
+      const statRes = await api.get('/verification/stats');
+      setStats(statRes.data);
+      
+      // Load section-specific data
+      if (activeSection === 'dashboard') {
+        const payRes = await api.get('/verification/all');
+        setPayments(payRes.data || []);
+      } else if (activeSection === 'pending') {
+        const payRes = await api.get('/verification/all');
+        const pendingPayments = (payRes.data || []).filter(p => p.status === 'submitted');
+        setPayments(pendingPayments);
+      } else if (activeSection === 'all') {
+        const payRes = await api.get('/verification/all');
+        setPayments(payRes.data || []);
+      }
+      
+      console.log('Payments loaded for section:', activeSection, payments.length);
+      
+    } catch(err) { 
       console.error('Error loading verification data:', err);
-      toast.error('Failed to load payment data');
     }
-    finally { setLoading(false); }
+    finally { 
+      setLoading(false); 
+    }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [activeSection]);
 
   const handleVerify = async (paymentId, action) => {
     setProcessing(paymentId + action);
@@ -52,10 +82,177 @@ export default function VerificationDashboard() {
     } catch (err) { toast.error('Bulk action failed'); }
   };
 
-  const filtered = filter === 'all' ? payments : payments.filter(p => p.status === filter);
+  // Add debugging
+console.log('Payments array:', payments);
+console.log('Filter:', filter);
+console.log('Stats:', stats);
+
+const filtered = filter === 'all' ? payments : payments.filter(p => {
+  // Handle different status mappings
+  if (filter === 'submitted') return p.status === 'submitted';
+  if (filter === 'verified') return p.status === 'verified';
+  if (filter === 'rejected') return p.status === 'rejected';
+  return false;
+});
+
+console.log('Filtered payments:', filtered);
 
   if (loading) return <div className="flex justify-center h-64 items-center"><div className="spinner" /></div>;
 
+  // Render different content based on active section
+  if (activeSection === 'pending') {
+    return (
+      <div className="space-y-6 animate-fade-in-up">
+        <div className="glass-card p-6">
+          <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+            <CheckCircle size={24} className="text-yellow-400" />
+            Pending Verifications
+          </h2>
+          
+          <div className="mb-6">
+            <button 
+              onClick={() => navigate('/verification/dashboard')} 
+              className="text-blue-400 hover:text-blue-300 text-sm flex items-center gap-1"
+            >
+              <ChevronRight size={16} className="rotate-180" />
+              Back to Dashboard
+            </button>
+          </div>
+
+          <div className="mb-4 p-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)' }}>
+            <p className="text-slate-400 text-xs">Pending Payments: {payments.length} items</p>
+          </div>
+
+          {/* Pending Payments Table */}
+          <div className="glass-card overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)' }}>
+                    <th className="py-3 px-4 text-left">
+                      <input type="checkbox" className="rounded" onChange={e => setSelectedIds(e.target.checked ? payments.map(p => p._id) : [])} />
+                    </th>
+                    {['Student', 'Roll No', 'Program', 'Amount', 'UTR No.', 'Bank', 'Date', 'Actions'].map(h => (
+                      <th key={h} className="py-3 px-4 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {payments.length === 0 ? (
+                    <tr><td colSpan={9} className="py-10 text-center text-slate-500">No pending payments found</td></tr>
+                  ) : payments.map(p => {
+                    const txn = p.transactions?.[0];
+                    return (
+                      <tr key={p._id} className="table-row" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                        <td className="py-3 px-4">
+                          <input type="checkbox" checked={selectedIds.includes(p._id)} onChange={e => setSelectedIds(sel => e.target.checked ? [...sel, p._id] : sel.filter(x => x !== p._id))} />
+                        </td>
+                        <td className="py-3 px-4 text-white font-medium whitespace-nowrap">{p.studentId?.name}</td>
+                        <td className="py-3 px-4 text-slate-400 font-mono text-xs">{p.rollNo || p.studentId?.rollNo}</td>
+                        <td className="py-3 px-4 text-slate-400">{p.studentId?.program}</td>
+                        <td className="py-3 px-4 text-emerald-400 font-bold">¥{p.totalAmount?.toLocaleString('en-IN')}</td>
+                        <td className="py-3 px-4 text-slate-300 font-mono text-xs">{txn?.utrNo || 'N/A'}</td>
+                        <td className="py-3 px-4 text-slate-400 text-xs">{txn?.bankName}</td>
+                        <td className="py-3 px-4 text-slate-400 text-xs">{txn?.date ? new Date(txn.date).toLocaleDateString('en-IN') : '-'}</td>
+                        <td className="py-3 px-4">
+                          <div className="flex gap-2">
+                            <button onClick={() => handleVerify(p._id, 'approve')} disabled={processing === p._id + 'approve'} className="btn-success text-xs px-3 py-1.5 flex items-center gap-1">
+                              {processing === p._id + 'approve' ? <Loader size={12} className="animate-spin" /> : <CheckCircle size={12} />} Approve
+                            </button>
+                            <button onClick={() => handleVerify(p._id, 'reject')} className="btn-danger text-xs px-3 py-1.5 flex items-center gap-1">
+                              <XCircle size={12} /> Reject
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {selectedIds.length > 0 && (
+            <div className="flex gap-2 mt-4">
+              <button onClick={() => handleBulk('approve')} className="btn-success text-sm px-4 py-2 flex items-center gap-1">
+                <CheckCircle size={14} /> Approve ({selectedIds.length})
+              </button>
+              <button onClick={() => handleBulk('reject')} className="btn-danger text-sm px-4 py-2 flex items-center gap-1">
+                <XCircle size={14} /> Reject ({selectedIds.length})
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (activeSection === 'all') {
+    return (
+      <div className="space-y-6 animate-fade-in-up">
+        <div className="glass-card p-6">
+          <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+            <List size={24} className="text-blue-400" />
+            All Payments
+          </h2>
+          
+          <div className="mb-6">
+            <button 
+              onClick={() => navigate('/verification/dashboard')} 
+              className="text-blue-400 hover:text-blue-300 text-sm flex items-center gap-1"
+            >
+              <ChevronRight size={16} className="rotate-180" />
+              Back to Dashboard
+            </button>
+          </div>
+
+          <div className="mb-4 p-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)' }}>
+            <p className="text-slate-400 text-xs">Total Payments: {payments.length} items</p>
+          </div>
+
+          {/* All Payments Table */}
+          <div className="glass-card overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)' }}>
+                    {['Student', 'Roll No', 'Program', 'Amount', 'UTR No.', 'Bank', 'Date', 'Status'].map(h => (
+                      <th key={h} className="py-3 px-4 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {payments.length === 0 ? (
+                    <tr><td colSpan={8} className="py-10 text-center text-slate-500">No payments found</td></tr>
+                  ) : payments.map(p => {
+                    const txn = p.transactions?.[0];
+                    return (
+                      <tr key={p._id} className="table-row" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                        <td className="py-3 px-4 text-white font-medium whitespace-nowrap">{p.studentId?.name}</td>
+                        <td className="py-3 px-4 text-slate-400 font-mono text-xs">{p.rollNo || p.studentId?.rollNo}</td>
+                        <td className="py-3 px-4 text-slate-400">{p.studentId?.program}</td>
+                        <td className="py-3 px-4 text-emerald-400 font-bold">¥{p.totalAmount?.toLocaleString('en-IN')}</td>
+                        <td className="py-3 px-4 text-slate-300 font-mono text-xs">{txn?.utrNo || 'N/A'}</td>
+                        <td className="py-3 px-4 text-slate-400 text-xs">{txn?.bankName}</td>
+                        <td className="py-3 px-4 text-slate-400 text-xs">{txn?.date ? new Date(txn.date).toLocaleDateString('en-IN') : '-'}</td>
+                        <td className="py-3 px-4">
+                          <span className={`text-xs px-2 py-1 rounded-full font-medium status-${p.status}`}>
+                            {p.status === 'submitted' ? 'Pending' : p.status}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Default Dashboard View
   return (
     <div className="space-y-6 animate-fade-in-up">
       {/* Stats */}
