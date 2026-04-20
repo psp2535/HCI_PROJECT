@@ -26,6 +26,9 @@ export default function FeePayment() {
   const [submitting, setSubmitting] = useState(false);
   const [file, setFile] = useState(null);
   const [transactions, setTransactions] = useState([{ amount: '', date: '', utrNo: '', bankName: '', depositorName: '', debitAccountNo: '' }]);
+  const [showUtrModal, setShowUtrModal] = useState(false);
+  const [utrInput, setUtrInput] = useState('');
+  const [utrSubmitting, setUtrSubmitting] = useState(false);
   
   // Direct payment URL
   const PAYMENT_URL = 'https://octopod.co.in/student/admission/08d02b1d9ee5fa9d0be8bb55f8c5dd3c';
@@ -97,35 +100,45 @@ export default function FeePayment() {
   const handleStatusUpdate = async () => {
     console.log('=== Payment Status Update Called ===');
     
-    try {
-      // Create a payment record if it doesn't exist
-      if (!payment) {
-        console.log('Creating new payment record...');
-        const formData = new FormData();
-        formData.append('transactions', JSON.stringify([{
-          amount: grandTotal.toString(),
-          date: new Date().toISOString().split('T')[0],
-          utrNo: 'ONLINE_PAYMENT_' + Date.now(),
-          bankName: 'Online Payment Portal',
-          depositorName: 'Self',
-          debitAccountNo: 'N/A'
-        }]));
-        formData.append('totalAmount', grandTotal);
-        formData.append('academicFee', academicTotal);
-        formData.append('messFee', messTotal);
+    // Show UTR input modal instead of directly creating payment
+    setShowUtrModal(true);
+  };
 
-        const createResponse = await api.post('/payment/submit', formData, { 
-          headers: { 'Content-Type': 'multipart/form-data' } 
-        });
-        console.log('Payment created:', createResponse.data);
-        
-        // Set the newly created payment
-        setPayment(createResponse.data.payment);
-        toast.success('Payment submitted successfully! Please wait for verification by accounts staff.');
-      } else {
-        // Payment already exists, just show message
-        toast.success('Payment record already exists. Status: ' + payment.status);
-      }
+  const handleUtrSubmit = async () => {
+    if (!utrInput.trim()) {
+      toast.error('Please enter a valid UTR/Transaction number');
+      return;
+    }
+
+    setUtrSubmitting(true);
+    try {
+      // Create a payment record with the provided UTR
+      console.log('Creating new payment record with UTR:', utrInput);
+      const formData = new FormData();
+      formData.append('transactions', JSON.stringify([{
+        amount: grandTotal.toString(),
+        date: new Date().toISOString().split('T')[0],
+        utrNo: utrInput.trim(),
+        bankName: 'Online Payment Portal',
+        depositorName: 'Self',
+        debitAccountNo: 'N/A'
+      }]));
+      formData.append('totalAmount', grandTotal);
+      formData.append('academicFee', academicTotal);
+      formData.append('messFee', messTotal);
+
+      const createResponse = await api.post('/payment/submit', formData, { 
+        headers: { 'Content-Type': 'multipart/form-data' } 
+      });
+      console.log('Payment created:', createResponse.data);
+      
+      // Set the newly created payment
+      setPayment(createResponse.data.payment);
+      toast.success('Payment submitted successfully with UTR: ' + utrInput.trim() + '! Please wait for verification by accounts staff.');
+      
+      // Close modal and reset input
+      setShowUtrModal(false);
+      setUtrInput('');
       
       // Refetch payment data to get the latest status
       setTimeout(async () => {
@@ -143,6 +156,8 @@ export default function FeePayment() {
       console.error('Error submitting payment:', error);
       console.error('Error details:', error.response?.data || error.message);
       toast.error('Failed to submit payment');
+    } finally {
+      setUtrSubmitting(false);
     }
   };
 
@@ -287,6 +302,70 @@ export default function FeePayment() {
             <CheckCircle size={18} />
             Mark Payment as Completed
           </button>
+        </div>
+      )}
+
+      {/* UTR Input Modal */}
+      {showUtrModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="glass-card p-6 w-full max-w-md">
+            <h3 className="text-xl font-bold text-white mb-4">Enter UTR/Transaction Number</h3>
+            <p className="text-slate-400 text-sm mb-6">
+              Please enter the UTR (Unique Transaction Reference) or transaction number from your payment confirmation.
+            </p>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  UTR/Transaction Number *
+                </label>
+                <input
+                  type="text"
+                  value={utrInput}
+                  onChange={(e) => setUtrInput(e.target.value)}
+                  placeholder="Enter UTR/Transaction number"
+                  className="form-input w-full"
+                  autoFocus
+                />
+              </div>
+              
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+                <p className="text-blue-300 text-sm">
+                  <strong>Note:</strong> This UTR number will be sent to the verification staff for payment confirmation.
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowUtrModal(false);
+                  setUtrInput('');
+                }}
+                className="btn-secondary flex-1 px-4 py-2"
+                disabled={utrSubmitting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUtrSubmit}
+                disabled={utrSubmitting || !utrInput.trim()}
+                className="btn-success flex-1 px-4 py-2 flex items-center justify-center gap-2"
+              >
+                {utrSubmitting ? (
+                  <>
+                    <div className="spinner w-4 h-4" />
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle size={16} />
+                    Submit Payment
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
