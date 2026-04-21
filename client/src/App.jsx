@@ -12,7 +12,7 @@ import StudentLayout from './components/StudentLayout';
 import VerificationLayout from './components/VerificationLayout';
 import FacultyLayout from './components/FacultyLayout';
 import AdminLayout from './components/AdminLayout';
-import AIChat from './components/AIChat';
+
 
 // Student Pages
 import StudentDashboard from './pages/student/StudentDashboard';
@@ -88,8 +88,7 @@ function AppRoutes() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
-      {/* AI Chat - show for all authenticated users */}
-      {user && <AIChat />}
+
     </>
   );
 }

@@ -143,19 +143,32 @@ router.get('/course-registrations', protect, authorize('faculty'), async (req, r
       ...query
     })
       .populate('studentId', 'name rollNo program semester email mobile')
-      .populate('selectedSubjects', 'subjectCode subjectName credits type ltp')
-      .populate('backlogSubjects', 'subjectCode subjectName credits type ltp')
+      .populate('selectedSubjects', 'subjectCode subjectName credits type ltp program semester')
+      .populate('backlogSubjects', 'subjectCode subjectName credits type ltp program semester')
       .sort({ 'studentId.rollNo': 1 });
     
     console.log('Found registrations:', registrations.length);
     
     // If specific subject requested, filter registrations for that subject
     let filteredRegistrations = registrations;
+    let targetSubjectCode = null;
+    
     if (subjectId) {
-      filteredRegistrations = registrations.filter(reg => 
-        reg.selectedSubjects.some(sub => sub._id.toString() === subjectId) ||
-        reg.backlogSubjects.some(sub => sub._id.toString() === subjectId)
-      );
+      const requestedSub = await Subject.findById(subjectId);
+      if (requestedSub) targetSubjectCode = requestedSub.subjectCode;
+      
+      if (targetSubjectCode) {
+        filteredRegistrations = registrations.filter(reg => 
+          reg.selectedSubjects.some(sub => sub.subjectCode === targetSubjectCode) ||
+          reg.backlogSubjects.some(sub => sub.subjectCode === targetSubjectCode)
+        );
+      } else {
+        // Fallback to strict ID check if subject not found in DB
+        filteredRegistrations = registrations.filter(reg => 
+          reg.selectedSubjects.some(sub => sub._id.toString() === subjectId) ||
+          reg.backlogSubjects.some(sub => sub._id.toString() === subjectId)
+        );
+      }
     }
     
     // Get available subjects for faculty's programs
@@ -168,6 +181,12 @@ router.get('/course-registrations', protect, authorize('faculty'), async (req, r
     filteredRegistrations.forEach(registration => {
       const allSubjects = [...registration.selectedSubjects, ...registration.backlogSubjects];
       allSubjects.forEach(subject => {
+        if (targetSubjectCode) {
+          if (subject.subjectCode !== targetSubjectCode) return;
+        } else if (subjectId && subject._id.toString() !== subjectId) {
+          return;
+        }
+        
         const key = subject._id.toString();
         if (!subjectGroups[key]) {
           subjectGroups[key] = {
@@ -222,16 +241,28 @@ router.get('/export-attendance-pdf', protect, authorize('faculty'), async (req, 
       ...query
     })
       .populate('studentId', 'name rollNo program semester email mobile')
-      .populate('selectedSubjects', 'subjectCode subjectName credits type ltp')
-      .populate('backlogSubjects', 'subjectCode subjectName credits type ltp')
+      .populate('selectedSubjects', 'subjectCode subjectName credits type ltp program semester')
+      .populate('backlogSubjects', 'subjectCode subjectName credits type ltp program semester')
       .sort({ 'studentId.rollNo': 1 });
     
     let filteredRegistrations = registrations;
+    let targetSubjectCode = null;
+    
     if (subjectId) {
-      filteredRegistrations = registrations.filter(reg => 
-        reg.selectedSubjects.some(sub => sub._id.toString() === subjectId) ||
-        reg.backlogSubjects.some(sub => sub._id.toString() === subjectId)
-      );
+      const requestedSub = await Subject.findById(subjectId);
+      if (requestedSub) targetSubjectCode = requestedSub.subjectCode;
+      
+      if (targetSubjectCode) {
+        filteredRegistrations = registrations.filter(reg => 
+          reg.selectedSubjects.some(sub => sub.subjectCode === targetSubjectCode) ||
+          reg.backlogSubjects.some(sub => sub.subjectCode === targetSubjectCode)
+        );
+      } else {
+        filteredRegistrations = registrations.filter(reg => 
+          reg.selectedSubjects.some(sub => sub._id.toString() === subjectId) ||
+          reg.backlogSubjects.some(sub => sub._id.toString() === subjectId)
+        );
+      }
     }
     
     const subjects = await Subject.find({
@@ -242,6 +273,12 @@ router.get('/export-attendance-pdf', protect, authorize('faculty'), async (req, 
     filteredRegistrations.forEach(registration => {
       const allSubjects = [...registration.selectedSubjects, ...registration.backlogSubjects];
       allSubjects.forEach(subject => {
+        if (targetSubjectCode) {
+          if (subject.subjectCode !== targetSubjectCode) return;
+        } else if (subjectId && subject._id.toString() !== subjectId) {
+          return;
+        }
+        
         const key = subject._id.toString();
         if (!subjectGroups[key]) {
           subjectGroups[key] = {

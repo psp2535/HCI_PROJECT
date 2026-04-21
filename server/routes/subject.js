@@ -136,11 +136,14 @@ router.get('/available', protect, authorize('student'), async (req, res) => {
       });
     }
 
-    // Get available subjects for student's program and semester
+    // Use currentSemester (updated on promotion), fallback to semester
+    const semesterToUse = student.currentSemester || student.semester;
+
+    // Get available subjects for student's program and current semester
     const subjects = await Subject.find({
       program: student.program,
-      semester: student.semester
-    }).sort({ type: 1, code: 1 });
+      semester: semesterToUse
+    }).sort({ type: 1, subjectCode: 1 });
 
     // Separate core and elective subjects
     const coreSubjects = subjects.filter(subject => subject.type === 'core');
@@ -149,7 +152,7 @@ router.get('/available', protect, authorize('student'), async (req, res) => {
     res.json({
       success: true,
       program: student.program,
-      semester: student.semester,
+      semester: semesterToUse,
       totalSubjects: subjects.length,
       coreSubjects,
       electiveSubjects,

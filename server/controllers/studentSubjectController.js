@@ -7,14 +7,12 @@ import Student from '../models/Student.js';
  */
 export const getSubjectsForStudent = async (studentId) => {
   try {
-    // Get student details
     const student = await Student.findById(studentId).select('program currentSemester semester');
     
     if (!student) {
       throw new Error('Student not found');
     }
 
-    // Use currentSemester if available, otherwise fall back to semester
     const semesterToUse = student.currentSemester || student.semester;
     const program = student.program;
 
@@ -22,11 +20,10 @@ export const getSubjectsForStudent = async (studentId) => {
       throw new Error('Student program or semester information is missing');
     }
 
-    // Fetch subjects for this program and semester
     const subjects = await Subject.find({
       program: program,
       semester: semesterToUse
-    }).sort({ type: 1, subjectCode: 1 }); // Sort by type (core first) then by code
+    }).sort({ type: 1, subjectCode: 1 });
 
     if (subjects.length === 0) {
       return {
@@ -38,7 +35,6 @@ export const getSubjectsForStudent = async (studentId) => {
       };
     }
 
-    // Separate core and elective subjects
     const coreSubjects = subjects.filter(s => s.type === 'core');
     const electiveSubjects = subjects.filter(s => s.type === 'elective');
 
@@ -58,11 +54,11 @@ export const getSubjectsForStudent = async (studentId) => {
 };
 
 /**
- * Select subjects for student with validation
+ * Select subjects for student with validation.
+ * Uses subjectCode (not _id) for core-subject validation to be robust against re-seeding.
  */
 export const selectSubjectsForStudent = async (studentId, subjectIds, backlogSubjectIds = []) => {
   try {
-    // Get student details
     const student = await Student.findById(studentId).select('program currentSemester semester');
     
     if (!student) {
@@ -71,37 +67,36 @@ export const selectSubjectsForStudent = async (studentId, subjectIds, backlogSub
 
     const semesterToUse = student.currentSemester || student.semester;
 
-    // Fetch all selected subjects
+    // Fetch all selected subjects by _id
     const selectedSubjects = await Subject.find({ _id: { $in: subjectIds } });
     const backlogSubjects = await Subject.find({ _id: { $in: backlogSubjectIds } });
 
-    // Validate that subjects exist
-    if (selectedSubjects.length !== subjectIds.length) {
-      throw new Error('Some selected subjects were not found');
+    // Validate at least something was found
+    if (selectedSubjects.length === 0 && subjectIds.length > 0) {
+      throw new Error('None of the selected subjects were found. Please refresh and try again.');
     }
 
-    // Validate core subjects are included
+    // Validate core subjects are included — compare by subjectCode for robustness
     const coreSubjectsForSemester = await Subject.find({
       program: student.program,
       semester: semesterToUse,
       type: 'core'
     });
 
-    const coreSubjectIds = coreSubjectsForSemester.map(s => s._id.toString());
-    const selectedSubjectIds = selectedSubjects.map(s => s._id.toString());
+    const coreSubjectCodes = coreSubjectsForSemester.map(s => s.subjectCode);
+    const selectedSubjectCodes = selectedSubjects.map(s => s.subjectCode);
 
-    const missingCoreSubjects = coreSubjectIds.filter(id => !selectedSubjectIds.includes(id));
+    const missingCoreCodes = coreSubjectCodes.filter(code => !selectedSubjectCodes.includes(code));
     
-    if (missingCoreSubjects.length > 0) {
-      const missingSubjects = await Subject.find({ _id: { $in: missingCoreSubjects } });
+    if (missingCoreCodes.length > 0) {
       throw new Error(
-        `Core subjects cannot be removed. Missing: ${missingSubjects.map(s => s.subjectName).join(', ')}`
+        `Core subjects cannot be removed. Missing: ${missingCoreCodes.join(', ')}`
       );
     }
 
     // Calculate total credits
     const totalCredits = [...selectedSubjects, ...backlogSubjects].reduce(
-      (sum, subject) => sum + subject.credits, 
+      (sum, subject) => sum + subject.credits,
       0
     );
 
@@ -155,7 +150,6 @@ export const getSubjectSelectionSummary = async (studentId) => {
 
     const semesterToUse = student.currentSemester || student.semester;
 
-    // Get available subjects
     const availableSubjects = await Subject.find({
       program: student.program,
       semester: semesterToUse
