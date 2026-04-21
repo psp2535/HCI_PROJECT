@@ -16,9 +16,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     const type = searchParams.get('type');
-    if (type === 'staff') {
-      setLoginType('staff');
-    }
+    if (type === 'staff') setLoginType('staff');
   }, [searchParams]);
 
   const handleSubmit = async (e) => {
@@ -33,7 +31,6 @@ export default function LoginPage() {
       }
       login(res.data.user, res.data.token);
       toast.success(`Welcome back, ${res.data.user.name}!`);
-
       const role = res.data.user.role;
       if (role === 'student') navigate('/student/dashboard');
       else if (role === 'verification_staff') navigate('/verification/dashboard');
@@ -47,108 +44,96 @@ export default function LoginPage() {
   };
 
   const fillDemo = (type) => {
-    if (type === 'student') setFormData({ id: '2023IMT-001', password: 'Student@123' });
-    else if (type === 'staff') setFormData({ id: 'STAFF001', password: 'Staff@123' });
-    else if (type === 'faculty') setFormData({ id: 'FAC001', password: 'Faculty@123' });
-    else if (type === 'admin') { setLoginType('staff'); setFormData({ id: 'ADMIN001', password: 'Admin@123' }); }
+    if (type === 'student') { setLoginType('student'); setFormData({ id: '2023IMT-001', password: 'Student@123' }); }
+    else if (type === 'staff')   { setLoginType('staff');   setFormData({ id: 'STAFF001',    password: 'Staff@123' }); }
+    else if (type === 'faculty') { setLoginType('staff');   setFormData({ id: 'FAC001',      password: 'Faculty@123' }); }
+    else if (type === 'admin')   { setLoginType('staff');   setFormData({ id: 'ADMIN001',    password: 'Admin@123' }); }
   };
 
+  const isStudent = loginType === 'student';
+
   return (
-    <div className="min-h-screen flex" style={{ background: 'linear-gradient(135deg, #020617 0%, #0f172a 50%, #1e1b4b 100%)' }}>
-      {/* Left Panel */}
-      <div className="hidden lg:flex flex-col justify-center items-center w-1/2 p-16 relative overflow-hidden">
-        <div className="absolute inset-0" style={{ background: 'radial-gradient(circle at 30% 50%, rgba(37,99,235,0.15) 0%, transparent 60%), radial-gradient(circle at 80% 20%, rgba(124,58,237,0.1) 0%, transparent 50%)' }} />
-        
-        {/* Logo */}
-        <div className="relative z-10 text-center mb-12">
-          <div className="w-28 h-28 mx-auto mb-8 rounded-3xl overflow-hidden flex items-center justify-center shadow-2xl" style={{ background: 'linear-gradient(135deg, #1d4ed8, #7c3aed)' }}>
-            <GraduationCap size={56} className="text-white" />
+    <div style={{ minHeight: '100vh', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 16px' }}>
+
+      {/* ── Background ── */}
+      <div style={{ position: 'absolute', inset: 0, backgroundImage: "url('/campus.jpg')", backgroundSize: 'cover', backgroundPosition: 'center' }} />
+      <div style={{ position: 'absolute', inset: 0, background: 'rgba(4, 8, 24, 0.80)' }} />
+
+      {/* Glow blobs */}
+      <div style={{ position: 'absolute', top: '-80px', left: '10%', width: '480px', height: '480px', borderRadius: '50%', background: '#1d4ed8', opacity: 0.08, filter: 'blur(90px)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', bottom: '-80px', right: '10%', width: '380px', height: '380px', borderRadius: '50%', background: '#7c3aed', opacity: 0.08, filter: 'blur(90px)', pointerEvents: 'none' }} />
+
+      {/* ── Content ── */}
+      <div className="animate-fade-in-up" style={{ position: 'relative', zIndex: 10, width: '100%', maxWidth: '460px' }}>
+
+        {/* Logo + Institute Name */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '28px' }}>
+          <div style={{
+            width: '96px', height: '96px', borderRadius: '50%',
+            background: 'white', padding: '7px', marginBottom: '18px',
+            boxShadow: '0 0 0 4px rgba(255,255,255,0.08), 0 12px 40px rgba(0,0,0,0.5), 0 0 50px rgba(59,130,246,0.25)',
+          }}>
+            <img src="/iiitm-logo.png" alt="ABV-IIITM" style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '50%' }} />
           </div>
-          <h1 className="text-5xl font-bold text-white mb-3">ABV-IIITM</h1>
-          <p className="text-blue-300 text-xl font-semibold">Gwalior</p>
-          <p className="text-slate-400 mt-3 text-base leading-relaxed">ABV - Indian Institute of Information Technology<br/>and Management</p>
+          <h1 style={{ color: '#fff', fontWeight: 800, fontSize: '28px', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+            ABV-IIITM Gwalior
+          </h1>
+          <p style={{ color: '#60a5fa', fontSize: '11px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', marginTop: '8px', opacity: 0.85 }}>
+            Semester Registration Portal
+          </p>
         </div>
 
-        <div className="relative z-10 glass-card p-8 w-full max-w-md">
-          <h2 className="text-white font-bold text-xl mb-6">Online Semester Registration</h2>
-          <div className="space-y-4">
+        {/* ── Main Card ── */}
+        <div style={{
+          background: 'rgba(6, 12, 30, 0.90)',
+          backdropFilter: 'blur(30px)',
+          WebkitBackdropFilter: 'blur(30px)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: '24px',
+          overflow: 'hidden',
+          boxShadow: '0 32px 80px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.07)',
+        }}>
+
+          {/* Tabs */}
+          <div style={{ display: 'flex', background: 'rgba(0,0,0,0.3)', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
             {[
-              ['📋', 'Personal Info & Documents'],
-              ['📚', 'Subject Selection & Credit Management'],
-              ['💳', 'Fee Payment & Receipt Generation'],
-              ['✅', 'Multi-level Approval Workflow'],
-              ['📊', 'Real-time Status Tracking'],
-            ].map(([icon, text]) => (
-              <div key={text} className="flex items-center gap-4">
-                <span className="text-2xl">{icon}</span>
-                <span className="text-slate-300 text-base">{text}</span>
-              </div>
+              { key: 'student', label: 'Student', Icon: GraduationCap },
+              { key: 'staff',   label: 'Staff / Faculty', Icon: Users },
+            ].map(({ key, label, Icon }) => (
+              <button
+                key={key}
+                onClick={() => { setLoginType(key); setFormData({ id: '', password: '' }); }}
+                style={{
+                  flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                  padding: '16px 12px', fontSize: '14px', fontWeight: 600,
+                  color: loginType === key ? '#fff' : '#4b637a',
+                  borderBottom: `2px solid ${loginType === key ? (key === 'student' ? '#3b82f6' : '#8b5cf6') : 'transparent'}`,
+                  background: 'transparent', border: 'none', cursor: 'pointer',
+                  borderBottomStyle: 'solid',
+                  transition: 'color 0.2s',
+                }}
+              >
+                <Icon size={16} />
+                {label}
+              </button>
             ))}
           </div>
-        </div>
 
-        {/* Quick Demo Buttons */}
-        <div className="relative z-10 mt-8 w-full max-w-md">
-          <p className="text-slate-500 text-sm font-semibold mb-6 text-center tracking-wide">QUICK DEMO ACCESS</p>
-          <div className="grid grid-cols-2 gap-4">
-            {[
-              ['Student', 'student', '#2563eb', GraduationCap, 'John Doe'],
-              ['Accounts Staff', 'staff', '#059669', UserCheck, 'Raj Kumar'],
-              ['Faculty', 'faculty', '#7c3aed', BookOpen, 'Dr. Smith'],
-              ['Admin', 'admin', '#dc2626', Shield, 'Admin User'],
-            ].map(([label, type, color, Icon, name]) => (
-              <button key={type} onClick={() => { setLoginType(type === 'student' ? 'student' : 'staff'); fillDemo(type); }}
-                className="p-4 rounded-2xl font-semibold transition-all hover:scale-105 hover:shadow-xl flex flex-col items-center gap-3"
-                style={{ background: `${color}22`, border: `1px solid ${color}44`, color: '#e2e8f0' }}>
-                <Icon size={32} style={{ color }} />
-                <div className="text-center">
-                  <div className="text-sm font-medium">{label}</div>
-                  <div className="text-xs text-slate-400 mt-1">{name}</div>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+          {/* Form area */}
+          <div style={{ padding: '32px' }}>
+            <h2 style={{ color: '#e8f0fe', fontWeight: 700, fontSize: '20px', marginBottom: '24px' }}>
+              Sign in to your account
+            </h2>
 
-      {/* Right Panel - Login Form */}
-      <div className="flex-1 flex items-center justify-center p-8">
-        <div className="w-full max-w-lg animate-fade-in-up">
-          {/* Mobile Logo */}
-          <div className="lg:hidden text-center mb-10">
-            <div className="w-20 h-20 mx-auto mb-4 rounded-2xl flex items-center justify-center shadow-xl" style={{ background: 'linear-gradient(135deg, #1d4ed8, #7c3aed)' }}>
-              <GraduationCap size={40} className="text-white" />
-            </div>
-            <h1 className="text-3xl font-bold text-white">ABV-IIITM Gwalior</h1>
-          </div>
-
-          <div className="glass-card p-10">
-            <div className="mb-8">
-              <h2 className="text-3xl font-bold text-white">Welcome Back</h2>
-              <p className="text-slate-400 text-base mt-2">Sign in to your account</p>
-            </div>
-
-            {/* Login Type Toggle */}
-            <div className="flex gap-3 mb-8 p-1.5 rounded-2xl" style={{ background: 'rgba(255,255,255,0.05)' }}>
-              <button onClick={() => { setLoginType('student'); setFormData({ id: '', password: '' }); }}
-                className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl text-base font-semibold transition-all ${loginType === 'student' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}>
-                <GraduationCap size={20} /> Student
-              </button>
-              <button onClick={() => { setLoginType('staff'); setFormData({ id: '', password: '' }); }}
-                className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl text-base font-semibold transition-all ${loginType === 'staff' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}>
-                <Users size={20} /> Staff / Faculty
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div>
-                <label className="form-label text-base">
-                  {loginType === 'student' ? 'Roll Number' : 'Employee ID'}
+                <label className="form-label">
+                  {isStudent ? 'Roll Number' : 'Employee ID'}
                 </label>
                 <input
                   type="text"
-                  className="form-input text-base"
-                  placeholder={loginType === 'student' ? 'e.g. 2023IMT-001' : 'e.g. STAFF001'}
+                  className="form-input"
+                  placeholder={isStudent ? 'e.g. 2023IMT-001' : 'e.g. FAC001'}
                   value={formData.id}
                   onChange={e => setFormData({ ...formData, id: e.target.value })}
                   required
@@ -156,62 +141,116 @@ export default function LoginPage() {
               </div>
 
               <div>
-                <label className="form-label text-base">Password</label>
-                <div className="relative">
+                <label className="form-label">Password</label>
+                <div style={{ position: 'relative' }}>
                   <input
                     type={showPassword ? 'text' : 'password'}
-                    className="form-input pr-12 text-base"
+                    className="form-input"
+                    style={{ paddingRight: '50px' }}
                     placeholder="Enter your password"
                     value={formData.password}
                     onChange={e => setFormData({ ...formData, password: e.target.value })}
                     required
                   />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors">
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', color: '#4b637a', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
               </div>
 
-              <button type="submit" disabled={loading} className="btn-primary w-full flex items-center justify-center gap-3 py-4 text-base font-bold">
-                {loading ? <Loader size={22} className="animate-spin" /> : <Lock size={22} />}
+              <button
+                type="submit"
+                disabled={loading}
+                className={`btn btn-lg ${isStudent ? 'btn-primary' : ''}`}
+                style={{
+                  width: '100%', marginTop: '4px',
+                  background: isStudent
+                    ? 'linear-gradient(135deg, #1d4ed8, #4f46e5)'
+                    : 'linear-gradient(135deg, #7c3aed, #6d28d9)',
+                  boxShadow: isStudent
+                    ? '0 6px 24px rgba(29,78,216,0.45)'
+                    : '0 6px 24px rgba(124,58,237,0.45)',
+                  color: '#fff',
+                }}
+              >
+                {loading ? <Loader size={20} className="animate-spin" /> : <Lock size={20} />}
                 {loading ? 'Signing in...' : 'Sign In'}
               </button>
             </form>
 
-            <div className="mt-8 pt-8" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-              <p className="text-center text-slate-500 text-sm mb-3">Create new account</p>
-              <div className="space-y-2">
-                <Link to="/register" className="block text-center text-blue-400 text-base font-semibold hover:text-blue-300 transition-colors">
-                  Student Registration →
+            {/* Register links */}
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', marginTop: '24px', paddingTop: '24px' }}>
+              <p style={{ textAlign: 'center', color: '#3d5475', fontSize: '11px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '14px' }}>
+                New here?
+              </p>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <Link
+                  to="/register"
+                  style={{
+                    flex: 1, textAlign: 'center', padding: '12px 16px',
+                    borderRadius: '12px', fontSize: '13px', fontWeight: 600,
+                    background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.28)',
+                    color: '#93c5fd', textDecoration: 'none', transition: 'all 0.2s',
+                    display: 'block',
+                  }}
+                >
+                  Student Registration
                 </Link>
-                <Link to={`/staff-register?type=staff`} className="block text-center text-green-400 text-base font-semibold hover:text-green-300 transition-colors" onClick={() => setLoginType('staff')}>
-                  Staff/Faculty/Admin Registration →
+                <Link
+                  to="/staff-register?type=staff"
+                  style={{
+                    flex: 1, textAlign: 'center', padding: '12px 16px',
+                    borderRadius: '12px', fontSize: '13px', fontWeight: 600,
+                    background: 'rgba(124,58,237,0.12)', border: '1px solid rgba(124,58,237,0.28)',
+                    color: '#c4b5fd', textDecoration: 'none', transition: 'all 0.2s',
+                    display: 'block',
+                  }}
+                >
+                  Staff Registration
                 </Link>
-              </div>
-            </div>
-
-            {/* Mobile demo buttons */}
-            <div className="lg:hidden mt-6">
-              <p className="text-slate-500 text-xs font-semibold mb-3 text-center tracking-wide">QUICK DEMO</p>
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  ['Student', 'student', '#2563eb', GraduationCap],
-                  ['Accounts Staff', 'staff', '#059669', UserCheck],
-                  ['Faculty', 'faculty', '#7c3aed', BookOpen],
-                  ['Admin', 'admin', '#dc2626', Shield],
-                ].map(([label, type, color, Icon]) => (
-                  <button key={type} onClick={() => { setLoginType(type === 'student' ? 'student' : 'staff'); fillDemo(type); }}
-                    className="p-3 rounded-xl font-medium text-slate-300 transition-all hover:scale-105 flex flex-col items-center gap-2"
-                    style={{ background: `${color}22`, border: `1px solid ${color}44` }}>
-                    <Icon size={24} style={{ color }} />
-                    <div className="text-xs text-center">{label}</div>
-                  </button>
-                ))}
               </div>
             </div>
           </div>
         </div>
+
+        {/* ── Quick Demo ── */}
+        <div style={{ marginTop: '22px' }}>
+          <p style={{ textAlign: 'center', color: '#4b637a', fontSize: '11px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '12px' }}>
+            Quick Demo Access
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
+            {[
+              { label: 'Student',   type: 'student', color: '#60a5fa', bg: 'rgba(59,130,246,0.16)',  border: 'rgba(59,130,246,0.4)',  Icon: GraduationCap },
+              { label: 'Accounts',  type: 'staff',   color: '#34d399', bg: 'rgba(16,185,129,0.16)',  border: 'rgba(16,185,129,0.4)',  Icon: UserCheck },
+              { label: 'Faculty',   type: 'faculty', color: '#c4b5fd', bg: 'rgba(139,92,246,0.16)',  border: 'rgba(139,92,246,0.4)',  Icon: BookOpen },
+              { label: 'Admin',     type: 'admin',   color: '#fca5a5', bg: 'rgba(239,68,68,0.16)',   border: 'rgba(239,68,68,0.4)',   Icon: Shield },
+            ].map(({ label, type, color, bg, border, Icon }) => (
+              <button
+                key={type}
+                onClick={() => fillDemo(type)}
+                style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '7px',
+                  padding: '14px 8px', borderRadius: '14px', fontSize: '12px', fontWeight: 700,
+                  color, background: bg, border: `1.5px solid ${border}`,
+                  cursor: 'pointer', transition: 'transform 0.15s, box-shadow 0.15s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = `0 6px 20px ${border}`; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
+              >
+                <Icon size={22} />
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <p style={{ textAlign: 'center', color: '#22334d', fontSize: '11px', marginTop: '20px' }}>
+          ABV-IIITM Gwalior · Academic Year 2025–26
+        </p>
       </div>
     </div>
   );
