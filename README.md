@@ -1,4 +1,4 @@
-# 🎓 ABV-IIITM Semester Registration System
+# 🎓 ABV-IIITM online Semester Registration System
 
 A comprehensive web-based semester registration and management system for ABV-Indian Institute of Information Technology and Management (ABV-IIITM). This system streamlines the entire student registration process, from course selection to fee payment and verification.
 
